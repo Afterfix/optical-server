@@ -1,9 +1,9 @@
 const express = require('express')
 const router = express.Router()
-const validateToken = require('../../../middlewares/validateToken')
+const validateToken = require('../../middlewares/validateToken')
 
 const CategoryRepository = require('./category.repository')
-const TenantRepository = require('../../../api/tenant/tenant.repository');
+const TenantRepository = require('../../api/tenant/tenant.repository');
 const CategoryService = require('./category.service')
 const CategoryController = require('./category.controller')
 const CategoryValidator = require('./category.validator')

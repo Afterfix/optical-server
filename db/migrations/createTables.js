@@ -46,11 +46,12 @@ const createTables = async () => {
     await createSettingsTable(client);
     await createDoneByTable(client);
     await createCostCenterTable(client);
+    await createBrandTable(client);
+    await createCategoryTable(client);
     await createFrameTable(client);
     await createFrameVariantTable(client);
     await createLensesTable(client);
     await createLensAddonsTable(client);
-    
 
     await createCustomerTable(client);
     await createPrescriptionTable(client);
@@ -58,12 +59,10 @@ const createTables = async () => {
 
     // // Setup tables
     await createEmployeePositionTable(client);
-    // await createEmployeeTable(client);
+    await createEmployeeTable(client);
     // await createPayrollTable(client);
 
     // // Business entities
-    await createBrandTable(client);
-    await createCategoryTable(client);
     // await createCustomerTable(client);
     // await createModeOfPaymentTable(client);
     // await createInvoiceNumberTable(client);

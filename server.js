@@ -6,7 +6,7 @@ const express = require("express");
 const authRoutes = require("./api/auth/auth.routes");
 const userRoutes = require("./api/user/user.routes");
 
-// const employeeRoutes = require("./api/employee/employee.routes");
+const employeeRoutes = require("./api/employee/employee.routes");
 const employeepositionRoutes = require("./api/employeeposition/employeeposition.routes");
 // const employeeAttendanceRoutes = require("./api/employeeAttendance/employeeAttendance.routes");
 // const employeePayrollRoutes = require("./api/employeePayroll/employeePayroll.routes");
@@ -23,6 +23,9 @@ const lensesRoutes = require('./api/lenses/lenses.routes')
 const lensAddonsRoutes = require('./api/lensesAddons/lensAddons.routes')
 const prescriptionRoutes = require("./api/Prescriptions/prescription.routes");
 const servicesRoutes = require("./api/services/services.routes");
+const brandRoutes = require("./api/brand/brand.routes");
+const categoryRoutes = require("./api/category/category.routes");
+const customerRoutes = require("./api/customer/customer.routes");
 
 const db = require("./config/db");
 
@@ -41,7 +44,7 @@ const PORT = process.env.PORT || 5000;
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-// app.use("/api/employee", employeeRoutes);
+app.use("/api/employee", employeeRoutes);
 app.use("/api/employee-position", employeepositionRoutes);
 // app.use("/api/employee-attendance", employeeAttendanceRoutes);
 // app.use("/api/employee-payroll", employeePayrollRoutes);
@@ -58,6 +61,9 @@ app.use('/api/lenses', lensesRoutes)
 app.use('/api/lens-addons', lensAddonsRoutes)
 app.use("/api/prescriptions", prescriptionRoutes);
 app.use("/api/services", servicesRoutes);
+app.use("/api/brand", brandRoutes);
+app.use("/api/category", categoryRoutes);
+app.use("/api/customer", customerRoutes);
 
 
 app.use((err, req, res, next) => {
