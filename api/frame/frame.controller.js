@@ -35,15 +35,13 @@ class FrameController {
   }
 
   async create(req, res, next) {
-    try {
-      const result = await this.service.create(req.body, req.user, req.db);
-      res
-        .status(result.status === "success" ? 201 : result.error.statusCode)
-        .json(result);
-    } catch (error) {
-      next(error);
-    }
+  try {
+    const result = await this.service.create(req.body, req.user, req.db);
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
   }
+}
 
   async update(req, res, next) {
     try {

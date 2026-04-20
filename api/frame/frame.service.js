@@ -23,44 +23,31 @@ class FrameService {
   }
 
   async create(frameData, user, db) {
-    const client = await db.connect();
-    try {
-      await client.query("BEGIN");
-      let tenantId =
-        user.role === "super_admin" ? frameData.tenant_id : user.tenant_id;
-
-      if (user.role === "super_admin") {
-        if (!tenantId)
-          throw Object.assign(new Error("Tenant ID required"), {
-            statusCode: 400,
-          });
-        const tenantExists = await this.tenantRepository.getById(
-          client,
-          tenantId,
-        );
-        if (!tenantExists)
-          throw Object.assign(new Error("Tenant not found"), {
-            statusCode: 404,
-          });
+    let tenantId;
+    
+    if (user.role === "super_admin") {
+      if (!frameData.tenant_id) {
+        throw Object.assign(new Error("Tenant ID required"), { statusCode: 400 });
       }
-
-      const dataToSave = { ...frameData, tenant_id: tenantId };
-      const newFrame = await this.frameRepository.create(client, dataToSave);
-      await client.query("COMMIT");
-
-      return {
-        status: "success",
-        data: await this.frameRepository.getById(client, newFrame.id, tenantId),
-      };
-    } catch (error) {
-      await client.query("ROLLBACK");
-      return {
-        status: "failed",
-        error: { message: error.message, statusCode: error.statusCode || 500 },
-      };
-    } finally {
-      client.release();
+      const tenantExists = await this.tenantRepository.getById(db, frameData.tenant_id);
+      if (!tenantExists) {
+        throw Object.assign(new Error("Tenant not found"), { statusCode: 404 });
+      }
+      tenantId = frameData.tenant_id;
+    } else {
+      tenantId = user.tenant_id;
     }
+
+    const dataToSave = { ...frameData, tenant_id: tenantId };
+    const newFrame = await this.frameRepository.create(db, dataToSave);
+    
+    // Fetch complete record with joins (brand_name, etc.)
+    const data = await this.frameRepository.getById(db, newFrame.id, tenantId);
+
+    return {
+      status: "success",
+      data: data,
+    };
   }
 
   async getById(id, user, db) {
@@ -72,50 +59,35 @@ class FrameService {
   }
 
   async update(id, data, user, db) {
-    const client = await db.connect();
-    try {
-      await client.query("BEGIN");
-      const tenantId = user.role === "super_admin" ? null : user.tenant_id;
-      const exists = await this.frameRepository.getById(client, id, tenantId);
-      if (!exists)
-        throw Object.assign(new Error("Frame not found"), { statusCode: 404 });
-
-      await this.frameRepository.update(client, id, data, tenantId);
-      await client.query("COMMIT");
-      return {
-        status: "success",
-        data: await this.frameRepository.getById(client, id, tenantId),
-      };
-    } catch (error) {
-      await client.query("ROLLBACK");
-      return {
-        status: "failed",
-        error: { message: error.message, statusCode: error.statusCode || 500 },
-      };
-    } finally {
-      client.release();
+    const tenantId = user.role === "super_admin" ? null : user.tenant_id;
+    
+    // Check existence first
+    const exists = await this.frameRepository.getById(db, id, tenantId);
+    if (!exists) {
+      throw Object.assign(new Error("Frame not found"), { statusCode: 404 });
     }
+
+    await this.frameRepository.update(db, id, data, tenantId);
+    const updatedData = await this.frameRepository.getById(db, id, tenantId);
+
+    return {
+      status: "success",
+      data: updatedData,
+    };
   }
 
   async delete(id, user, db) {
-    const client = await db.connect();
-    try {
-      await client.query("BEGIN");
-      const tenantId = user.role === "super_admin" ? null : user.tenant_id;
-      const deleted = await this.frameRepository.delete(client, id, tenantId);
-      if (!deleted)
-        throw Object.assign(new Error("Frame not found"), { statusCode: 404 });
-      await client.query("COMMIT");
-      return { status: "success", data: deleted };
-    } catch (error) {
-      await client.query("ROLLBACK");
-      return {
-        status: "failed",
-        error: { message: error.message, statusCode: error.statusCode || 500 },
-      };
-    } finally {
-      client.release();
+    const tenantId = user.role === "super_admin" ? null : user.tenant_id;
+    const deleted = await this.frameRepository.delete(db, id, tenantId);
+    
+    if (!deleted) {
+      throw Object.assign(new Error("Frame not found"), { statusCode: 404 });
     }
+
+    return { 
+      status: "success", 
+      data: deleted 
+    };
   }
 }
 
