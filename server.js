@@ -44,7 +44,7 @@ const PORT = process.env.PORT || 5000;
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/employee", employeeRoutes);
+app.use("/api/employees", employeeRoutes);
 app.use("/api/employee-position", employeepositionRoutes);
 // app.use("/api/employee-attendance", employeeAttendanceRoutes);
 // app.use("/api/employee-payroll", employeePayrollRoutes);
