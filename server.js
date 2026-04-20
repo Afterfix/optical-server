@@ -22,6 +22,7 @@ const frameVariantRoutes = require('./api/frameVarient/frameVariant.routes')
 const lensesRoutes = require('./api/lenses/lenses.routes')
 const lensAddonsRoutes = require('./api/lensesAddons/lensAddons.routes')
 const prescriptionRoutes = require("./api/Prescriptions/prescription.routes");
+const servicesRoutes = require("./api/services/services.routes");
 
 const db = require("./config/db");
 
@@ -56,6 +57,7 @@ app.use('/api/frame-variants', frameVariantRoutes)
 app.use('/api/lenses', lensesRoutes)
 app.use('/api/lens-addons', lensAddonsRoutes)
 app.use("/api/prescriptions", prescriptionRoutes);
+app.use("/api/services", servicesRoutes);
 
 
 app.use((err, req, res, next) => {
