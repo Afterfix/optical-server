@@ -15,12 +15,12 @@ module.exports = async (client) => {
         CREATE TABLE sales (
           id SERIAL PRIMARY KEY,
           tenant_id INTEGER REFERENCES "tenant"(id) ON DELETE CASCADE, 
-          party_id INTEGER NOT NULL REFERENCES party(id), 
+          customer_id INTEGER NOT NULL REFERENCES customer(id), 
           done_by_id INTEGER REFERENCES "done_by"(id) ON DELETE SET NULL,
           cost_center_id INTEGER REFERENCES "cost_center"(id) ON DELETE SET NULL,
           total_amount DECIMAL(10, 2) NOT NULL,
           paid_amount DECIMAL(10, 2) NOT NULL,
-          change_return DECIMAL(10, 2) DEFAULT 0.00, -- <<< ADDED
+          change_return DECIMAL(10, 2) DEFAULT 0.00,
           discount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
           date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           status VARCHAR(255) NOT NULL,
@@ -33,7 +33,7 @@ module.exports = async (client) => {
       await client.query(
         `CREATE INDEX idx_sales_tenant_id ON sales(tenant_id);`
       )
-      await client.query(`CREATE INDEX idx_sales_party_id ON sales(party_id);`)
+      await client.query(`CREATE INDEX idx_sales_customer_id ON sales(customer_id);`)
       await client.query(
         `CREATE INDEX idx_sales_done_by_id ON sales(done_by_id);`
       )
