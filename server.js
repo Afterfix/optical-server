@@ -7,7 +7,7 @@ const authRoutes = require("./api/auth/auth.routes");
 const userRoutes = require("./api/user/user.routes");
 
 // const employeeRoutes = require("./api/employee/employee.routes");
-// const employeepositionRoutes = require("./api/employeeposition/employeeposition.routes");
+const employeepositionRoutes = require("./api/employeeposition/employeeposition.routes");
 // const employeeAttendanceRoutes = require("./api/employeeAttendance/employeeAttendance.routes");
 // const employeePayrollRoutes = require("./api/employeePayroll/employeePayroll.routes");
 // const expenseRoutes = require("./api/expense/expense.routes");
@@ -30,7 +30,7 @@ const PORT = process.env.PORT || 5000;
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 // app.use("/api/employee", employeeRoutes);
-// app.use("/api/employee-position", employeepositionRoutes);
+app.use("/api/employee-position", employeepositionRoutes);
 // app.use("/api/employee-attendance", employeeAttendanceRoutes);
 // app.use("/api/employee-payroll", employeePayrollRoutes);
 // app.use("/api/expenses", expenseRoutes);

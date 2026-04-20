@@ -1,25 +1,26 @@
 class CostCenterRepository {
+  constructor(db) {
+    this.db = db; // ✅ Accept db via constructor
+  }
 
-
-  async getAllByTenantId(db, tenantId) {
-    const { rows } = await db.query(
+  async getAllByTenantId(tenantId) { // ✅ Removed db param
+    const { rows } = await this.db.query( // ✅ Used this.db.query
       `SELECT * FROM "cost_center" WHERE tenant_id = $1 ORDER BY created_at DESC`,
       [tenantId]
     );
     return rows;
   }
 
-  async create(db, costCenterData) {
+  async create(costCenterData) { // ✅ Removed db param
     const { tenant_id, name } = costCenterData;
-    const { rows } = await db.query(
+    const { rows } = await this.db.query( // ✅ Used this.db.query
       `INSERT INTO "cost_center" (tenant_id, name) VALUES ($1, $2) RETURNING *`,
       [tenant_id, name]
     );
     return rows[0];
   }
 
-  // MODIFIED to handle optional tenantId
-  async getById(db, id, tenantId = null) {
+  async getById(id, tenantId = null) { // ✅ Removed db param
     let query = `SELECT * FROM "cost_center" WHERE id = $1`;
     const params = [id];
 
@@ -28,17 +29,16 @@ class CostCenterRepository {
       params.push(tenantId);
     }
 
-    const { rows } = await db.query(query, params);
+    const { rows } = await this.db.query(query, params); // ✅ Used this.db.query
     return rows[0];
   }
 
-  // MODIFIED to handle optional tenantId
-  async update(db, id, tenantId = null, data) {
+  async update(id, tenantId = null, data) { // ✅ Removed db param
     const fields = Object.keys(data);
     const values = Object.values(data);
 
     if (fields.length === 0) {
-      return this.getById(id, tenantId);
+      return this.getById(id, tenantId); // ✅ Removed db param
     }
 
     const setClause = fields.map((field, index) => `"${field}" = $${index + 1}`).join(", ");
@@ -52,11 +52,11 @@ class CostCenterRepository {
     
     query += " RETURNING *";
 
-    const { rows } = await db.query(query, params);
+    const { rows } = await this.db.query(query, params); // ✅ Used this.db.query
     return rows[0];
   }
 
-  async delete(db, id, tenantId = null) {
+  async delete(id, tenantId = null) { // ✅ Removed db param
     let query = `DELETE FROM "cost_center" WHERE id = $1`;
     const params = [id];
 
@@ -67,7 +67,7 @@ class CostCenterRepository {
     
     query += " RETURNING id";
 
-    const { rows } = await db.query(query, params);
+    const { rows } = await this.db.query(query, params); // ✅ Used this.db.query
     return rows[0];
   }
 }

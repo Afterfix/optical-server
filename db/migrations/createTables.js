@@ -43,7 +43,7 @@ const createTables = async () => {
   
 
     // // Setup tables
-    // await createEmployeePositionTable(client);
+    await createEmployeePositionTable(client);
     // await createEmployeeTable(client);
     // await createPayrollTable(client);
 
