@@ -73,7 +73,6 @@ class RoleService {
   }
 
   async update(id, roleData, user, db) {
-    // Find the role first to ensure it exists and to get its tenant_id
     const targetRole = await this.getById(id, user, db)
 
     const existingRole = await this.roleRepository.findByName(
@@ -103,6 +102,7 @@ class RoleService {
   async delete(id, user, db) {
     const roleToDelete = await this.getById(id, user, db)
 
+    // Safeguard: prevent deletion of the super_admin role
     if (
       roleToDelete.name === 'super_admin' &&
       roleToDelete.tenant_id === null

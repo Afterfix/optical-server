@@ -1,111 +1,96 @@
 require("dotenv").config();
-const path = require("path");
+
 const cors = require("cors");
 const express = require("express");
-const dbSelector = require("./middlewares/dbSelector");
-const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
 
-const physiquexApp = require("./apps/physiquex/app.routes");
-const wheelxApp = require("./apps/wheelx/app.routes");
-const buildxApp = require("./apps/buildx/app.routes");
-const gadgetxApp = require("./apps/gadgetx/app.routes");
-const travelxApp = require("./apps/travelx/app.routes");
-const invoicexApp = require("./apps/invoicex/app.routes");
-const inventoryxApp = require("./apps/inventoryx/app.routes");
+const authRoutes = require("./api/auth/auth.routes");
+const userRoutes = require("./api/user/user.routes");
 
-const PORT = process.env.PORT || 5000;
+const memberRoutes = require("./api/member/member.routes");
+const memberAttendanceRoutes = require("./api/memberAttendance/memberAttendance.routes");
+const subscriptionRoutes = require("./api/subscription/subscription.routes");
+const membershipPlanRoutes = require("./api/membershipPlan/membershipPlan.routes");
+const employeeRoutes = require("./api/employee/employee.routes");
+const employeepositionRoutes = require("./api/employeeposition/employeeposition.routes");
+const employeeAttendanceRoutes = require("./api/employeeAttendance/employeeAttendance.routes");
+const employeePayrollRoutes = require("./api/employeePayroll/employeePayroll.routes");
+const accountRoutes = require("./api/account/account.routes");
+const cashbookRoutes = require("./api/cashbook/cashBook.routes");
+const expenseRoutes = require("./api/expense/expense.routes");
+const expenseTypeRoutes = require("./api/expenseType/expenseType.routes");
+const summaryRoutes = require("./api/summary/summary.routes");
+const dailySummaryRoutes = require("./api/dailySummary/dailysummary.routes");
+const cost_centerRoutes = require('./api/costCenter/costCenter.routes')
+const done_byRoutes = require('./api/doneBy/doneBy.routes')
+const settingsRoutes = require('./api/settings/settings.routes')
+const roleRoutes = require('./api/role/role.routes')
+const tenantRoutes = require('./api/tenant/tenant.routes')
+const transactionRoutes = require('./api/transaction/transaction.routes')
+const DietPlanRoutes = require('./api/dietPlan/dietPlan.routes')
+const DietPlanItemRoutes = require('./api/dietPlanItem/dietPlanItem.routes')
+const classRoutes=require('./api/classes/class.routes')
+const classScheduleRoutes=require('./api/classSchedule/classSchedule.routes')
+const classBookingRoutes=require('./api/classBooking/classBooking.routes')
+
+const ptPackageRoutes = require("./api/ptPackage/ptPackage.routes");
+const ptBookingRoutes = require("./api/ptBooking/ptBooking.routes");
+const ptSessionRoutes = require("./api/ptSession/ptSession.routes");
+const exerciseRoutes = require("./api/exercise/exercise.routes");
+const workoutPlanRoutes = require("./api/workoutPlan/workoutPlan.routes");
+const workoutPlanItemRoutes = require("./api/workoutPlanItem/workoutPlanItem.routes");
+
+
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// Simple request logger
-app.use((req, res, next) => {
-  console.log(`[REQ] ${req.method} ${req.url}`);
-  if (['POST', 'PUT'].includes(req.method)) {
-    console.log(`[BODY]`, JSON.stringify(req.body, null, 2));
-  }
-  next();
-});
+const PORT = process.env.PORT || 5000;
 
-// CORS for /uploads so frontend (e.g. shark-app on DigitalOcean) can load images from api.accountx.app
-// Enable CORS for all /uploads routes (including sub-paths)
-app.use('/uploads', (req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  next();
-});
-const staticPath = path.resolve(process.cwd(), 'uploads');
-// Fix: Map /uploads/gadgets requests to /uploads/gadgetx to handle cached/old URLs
-app.use('/uploads/gadgets', express.static(path.join(process.cwd(), 'uploads/gadgetx')));
-// Fix: Map /uploads/gadgetx requests to /uploads/gadgets to handle uploads that went to the wrong folder
-app.use('/uploads/gadgetx', express.static(path.join(process.cwd(), 'uploads/gadgets')));
-app.use('/uploads', express.static(staticPath));
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/members", memberRoutes);
+app.use("/api/subscriptions", subscriptionRoutes);
+app.use("/api/membership-plans", membershipPlanRoutes);
+app.use("/api/employee", employeeRoutes);
+app.use("/api/employee-position", employeepositionRoutes);
+app.use("/api/employee-attendance", employeeAttendanceRoutes);
+app.use("/api/employee-payroll", employeePayrollRoutes);
+app.use("/api/member-attendance", memberAttendanceRoutes);
+app.use("/api/summary", summaryRoutes);
+app.use("/api/daily-summary", dailySummaryRoutes);
+app.use("/api/accounts", accountRoutes);
+app.use("/api/cash-books", cashbookRoutes);
+app.use("/api/expenses", expenseRoutes);
+app.use('/api/expense-types', expenseTypeRoutes);
+app.use('/api/cost-centers', cost_centerRoutes)
+app.use('/api/done-by', done_byRoutes)
+app.use('/api/settings', settingsRoutes)
+app.use('/api/roles', roleRoutes)
+app.use('/api/tenant', tenantRoutes)
+app.use('/api/transactions', transactionRoutes)
+app.use('/api/diet-plans', DietPlanRoutes);
+app.use('/api/diet_plan_items', DietPlanItemRoutes);
+app.use('/api/class',classRoutes)
+app.use('/api/class-schedules',classScheduleRoutes)
+app.use('/api/class-Booking',classBookingRoutes)
 
-app.use(
-  helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-  })
-);
+app.use("/api/pt-packages", ptPackageRoutes);
+app.use("/api/pt-bookings", ptBookingRoutes);
+app.use("/api/pt-sessions", ptSessionRoutes);
+app.use("/api/exercises", exerciseRoutes);
+app.use("/api/workout-plans", workoutPlanRoutes);
+app.use("/api/workout-plan-items", workoutPlanItemRoutes);
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: "Too many requests from this IP, please try again after 15 minutes.",
-  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-});
 
-// app.use(limiter);
-
-app.use("/api/wheelx", dbSelector("wheelx"), (req, res, next) => {
-  wheelxApp(req, res, next);
-});
-app.use("/api/physiquex", dbSelector("physiquex"), (req, res, next) => {
-  physiquexApp(req, res, next);
-});
-app.use("/api/buildx", dbSelector("buildx"), (req, res, next) => {
-  buildxApp(req, res, next);
-});
-app.use("/api/gadgetx", dbSelector("gadgetx"), (req, res, next) => {
-  gadgetxApp(req, res, next);
-});
-
-app.use("/api/travelx", dbSelector("travelx"), (req, res, next) => {
-  travelxApp(req, res, next);
-});
-
-app.use("/api/invoicex", dbSelector("invoicex"), (req, res, next) => {
-  invoicexApp(req, res, next);
-});
-app.use("/api/inventoryx", dbSelector("inventoryx"), (req, res, next) => {
-  inventoryxApp(req, res, next);
-});
-
-app.get("/health", (req, res) => {
-  res.status(200).json({
-    status: "AccountX API running",
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Global error handler: log and respond so 500s are debuggable
 app.use((err, req, res, next) => {
-  const status = err.statusCode || err.status || 500;
-  console.error("[Error]", status, err.message);
-  if (process.env.NODE_ENV !== "production") {
-    console.error(err.stack);
-  }
-  res.status(status).json({
-    message: err.message || "Internal server error",
-    ...(process.env.NODE_ENV !== "production" && { stack: err.stack }),
-  });
+  console.error(err.stack);
+  const statusCode = err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  res.status(statusCode).json({ message });
 });
 
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
