@@ -5,7 +5,7 @@ class CostCenterController {
 
   async create(req, res, next) {
     try {
-      const newCostCenter = await this.service.create(req.body, req.user, req.db);
+      const newCostCenter = await this.service.create(req.body, req.user); // ✅ Removed req.db
       res.status(201).json(newCostCenter);
     } catch (error) {
       next(error);
@@ -14,7 +14,7 @@ class CostCenterController {
 
   async getAll(req, res, next) {
     try {
-      const data = await this.service.getAll(req.user, req.query, req.db);
+      const data = await this.service.getAll(req.user, req.query); // ✅ Removed req.db
       res.json(data);
     } catch (error) {
       next(error);
@@ -23,7 +23,7 @@ class CostCenterController {
 
   async getById(req, res, next) {
     try {
-      const costCenter = await this.service.getById(req.params.id, req.user, req.db);
+      const costCenter = await this.service.getById(req.params.id, req.user); // ✅ Removed req.db
       if (!costCenter) {
         return res
           .status(404)
@@ -40,8 +40,7 @@ class CostCenterController {
       const updatedCostCenter = await this.service.update(
         req.params.id,
         req.body,
-        req.user,
-        req.db
+        req.user
       );
       if (!updatedCostCenter) {
         return res.status(404).json({
@@ -56,7 +55,7 @@ class CostCenterController {
 
   async delete(req, res, next) {
     try {
-      const result = await this.service.delete(req.params.id, req.user, req.db);
+      const result = await this.service.delete(req.params.id, req.user); // ✅ Removed req.db
       if (!result) {
         return res.status(404).json({
           message: "Cost Center not found or not authorized to delete",
