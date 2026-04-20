@@ -11,7 +11,7 @@ const employeepositionRoutes = require("./api/employeeposition/employeeposition.
 // const employeeAttendanceRoutes = require("./api/employeeAttendance/employeeAttendance.routes");
 // const employeePayrollRoutes = require("./api/employeePayroll/employeePayroll.routes");
 // const expenseRoutes = require("./api/expense/expense.routes");
-// const expenseTypeRoutes = require("./api/expenseType/expenseType.routes");
+const expenseTypeRoutes = require("./api/expenseType/expenseType.routes");
 const cost_centerRoutes = require('./api/costCenter/costCenter.routes')
 const done_byRoutes = require('./api/doneBy/doneBy.routes')
 // const settingsRoutes = require('./api/settings/settings.routes')
@@ -49,7 +49,7 @@ app.use("/api/employee-position", employeepositionRoutes);
 // app.use("/api/employee-attendance", employeeAttendanceRoutes);
 // app.use("/api/employee-payroll", employeePayrollRoutes);
 // app.use("/api/expenses", expenseRoutes);
-// app.use('/api/expense-types', expenseTypeRoutes);
+app.use('/api/expense-type', expenseTypeRoutes);
 app.use('/api/cost-centers', cost_centerRoutes)
 app.use('/api/done-by', done_byRoutes)
 // app.use('/api/settings', settingsRoutes)

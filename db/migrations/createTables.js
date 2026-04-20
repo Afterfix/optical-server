@@ -68,7 +68,7 @@ const createTables = async () => {
     // await createInvoiceNumberTable(client);
 
     // // Expense
-    // await createExpenseTypeTable(client);
+    await createExpenseTypeTable(client);
     // await createExpenseTable(client);
 
     // // Inventory
