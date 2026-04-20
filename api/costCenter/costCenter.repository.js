@@ -38,7 +38,7 @@ class CostCenterRepository {
     const values = Object.values(data);
 
     if (fields.length === 0) {
-      return this.getById(id, tenantId);
+      return this.getById(db, id, tenantId);
     }
 
     const setClause = fields.map((field, index) => `"${field}" = $${index + 1}`).join(", ");

@@ -26,6 +26,8 @@ const createSaleReturnTable = require("../../api/saleReturn/saleReturn.table.js"
 const createSalesTable = require("../../api/sales/sales.table.js");
 const createDoneByTable = require("../../api/doneBy/doneBy.table.js");
 const createCostCenterTable = require("../../api/costCenter/costcenter.table.js");
+const createPrescriptionTable = require("../../api/Prescriptions/prescription.table.js");
+// const createCustomerTable = require("../../api/customer/customer.table.js");
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -40,7 +42,9 @@ const createTables = async () => {
     await createSettingsTable(client);
     await createDoneByTable(client);
     await createCostCenterTable(client);
-  
+
+    await createCustomerTable(client);
+    await createPrescriptionTable(client);
 
     // // Setup tables
     // await createEmployeePositionTable(client);
@@ -53,7 +57,7 @@ const createTables = async () => {
     // await createCustomerTable(client);
     // await createModeOfPaymentTable(client);
     // await createInvoiceNumberTable(client);
-    
+
     // // Expense
     // await createExpenseTypeTable(client);
     // await createExpenseTable(client);
@@ -73,7 +77,7 @@ const createTables = async () => {
     console.log("✅ All tables created successfully in the correct order.");
   } catch (err) {
     console.error("❌ Migration failed:", err);
-    process.exit(1); 
+    process.exit(1);
   } finally {
     client.release();
     console.log("ℹ️ Database client released.");
