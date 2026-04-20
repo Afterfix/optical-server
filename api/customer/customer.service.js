@@ -1,5 +1,7 @@
 class CustomerService {
-  constructor(repo) { this.repo = repo; }
+  constructor(repo) {
+    this.repo = repo;
+  }
 
   async getAll(user, db) {
     return await this.repo.getAll(db, user.tenant_id);
@@ -9,7 +11,7 @@ class CustomerService {
     try {
       return await this.repo.create(db, { ...data, tenant_id: user.tenant_id });
     } catch (e) {
-      if (e.code === '23505') throw new Error("Customer name already exists.");
+      if (e.code === "23505") throw new Error("Customer name already exists.");
       throw e;
     }
   }
@@ -19,7 +21,13 @@ class CustomerService {
   }
 
   async update(id, data, user, db) {
-    return await this.repo.update(db, id, user.tenant_id, data);
+    try {
+      return await this.repo.update(db, id, user.tenant_id, data);
+    } catch (e) {
+      if (e.code === "23505")
+        throw new Error("A customer with this name already exists.");
+      throw e;
+    }
   }
 
   async delete(id, user, db) {

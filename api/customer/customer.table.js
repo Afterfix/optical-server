@@ -15,19 +15,9 @@ module.exports = async (client) => {
           tenant_id INTEGER REFERENCES "tenant"(id) ON DELETE CASCADE,
           name VARCHAR(255) NOT NULL,
           contact_no VARCHAR(20),
-          right_sph   DECIMAL(6, 2),
-          right_cyl   DECIMAL(6, 2),
-          right_axis  DECIMAL(6, 2),
-          right_add   DECIMAL(6, 2),
-          right_ipd   DECIMAL(6, 2),
-          left_sph    DECIMAL(6, 2),
-          left_cyl    DECIMAL(6, 2),
-          left_axis   DECIMAL(6, 2),
-          left_add    DECIMAL(6, 2),
-          left_ipd    DECIMAL(6, 2),
-          remarks     TEXT,
-          created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          remarks TEXT,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           UNIQUE (tenant_id, name)
         );
       `);
@@ -37,7 +27,6 @@ module.exports = async (client) => {
       await client.query(
         `CREATE INDEX idx_customer_tenant_id ON customer(tenant_id);`,
       );
-      await client.query(`CREATE INDEX idx_customer_name ON customer(name);`);
 
       console.log('✅ Indexes for "customer" table created.');
     }
