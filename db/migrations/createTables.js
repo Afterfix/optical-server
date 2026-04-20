@@ -30,6 +30,8 @@ const createFrameTable = require("../../api/frame/frame.table.js");
 const createFrameVariantTable = require("../../api/frameVarient/frameVariant.table.js");
 const createLensesTable = require("../../api/lenses/lenses.table.js");
 const createLensAddonsTable = require("../../api/lensesAddons/lensAddons.table.js");
+const createPrescriptionTable = require("../../api/Prescriptions/prescription.table.js");
+// const createCustomerTable = require("../../api/customer/customer.table.js");
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -49,8 +51,12 @@ const createTables = async () => {
     await createLensesTable(client);
     await createLensAddonsTable(client);
     
+
+    await createCustomerTable(client);
+    await createPrescriptionTable(client);
+
     // // Setup tables
-    // await createEmployeePositionTable(client);
+    await createEmployeePositionTable(client);
     // await createEmployeeTable(client);
     // await createPayrollTable(client);
 
@@ -60,7 +66,7 @@ const createTables = async () => {
     // await createCustomerTable(client);
     // await createModeOfPaymentTable(client);
     // await createInvoiceNumberTable(client);
-    
+
     // // Expense
     // await createExpenseTypeTable(client);
     // await createExpenseTable(client);
@@ -80,7 +86,7 @@ const createTables = async () => {
     console.log("✅ All tables created successfully in the correct order.");
   } catch (err) {
     console.error("❌ Migration failed:", err);
-    process.exit(1); 
+    process.exit(1);
   } finally {
     client.release();
     console.log("ℹ️ Database client released.");
