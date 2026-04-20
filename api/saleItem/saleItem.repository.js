@@ -2,10 +2,10 @@ class SalesItemRepository {
   async createMany(client, salesId, items, tenantId) {
     const query = `
       INSERT INTO sale_item (
-        tenant_id, sales_id, frame_variant_id, lens_id, prescription_id, 
+        tenant_id, sales_id, frame_variant_id, lens_id, prescription_id, lens_addon_id,
         quantity, frame_price, lens_price, addon_price, tax_amount, total_price
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     `;
 
     for (const item of items) {
@@ -15,6 +15,7 @@ class SalesItemRepository {
         item.frame_variant_id || null,
         item.lens_id || null,
         item.prescription_id || null,
+        item.lens_addon_id || null,
         item.quantity || 1,
         item.frame_price || 0,
         item.lens_price || 0,
@@ -34,6 +35,7 @@ class SalesItemRepository {
       FROM sale_item si
       LEFT JOIN frame_variants fv ON si.frame_variant_id = fv.id
       LEFT JOIN lenses l ON si.lens_id = l.id
+      LEFT JOIN lens_addons la ON si.lens_addon_id = la.id
       WHERE si.sales_id = $1
     `;
     const { rows } = await db.query(query, [salesId]);
