@@ -31,7 +31,6 @@ const createFrameVariantTable = require("../../api/frameVarient/frameVariant.tab
 const createLensesTable = require("../../api/lenses/lenses.table.js");
 const createLensAddonsTable = require("../../api/lensesAddons/lensAddons.table.js");
 const createPrescriptionTable = require("../../api/Prescriptions/prescription.table.js");
-// const createCustomerTable = require("../../api/customer/customer.table.js");
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -58,7 +57,7 @@ const createTables = async () => {
 
     // // Setup tables
     await createEmployeePositionTable(client);
-    // await createEmployeeTable(client);
+    await createEmployeeTable(client);
     // await createPayrollTable(client);
 
     // // Business entities
