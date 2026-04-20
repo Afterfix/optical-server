@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 // const db = require('../../config/db'); // No longer needed
-const validateToken = require('../../../apps/gadgetx/middlewares/validateToken');
-const isAdminOrSuperAdmin = require('../../../apps/gadgetx/middlewares/isAdminOrSuperAdmin'); // This is updated
+const validateToken = require('../../../middlewares/validateToken');
+const isAdminOrSuperAdmin = require('../../../middlewares/isAdminOrSuperAdmin'); // This is updated
 
 const SettingsRepository = require('./settings.repository');
 const SettingsService = require('./settings.service');

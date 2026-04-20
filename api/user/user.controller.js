@@ -1,11 +1,13 @@
+
 class UserController {
   constructor(service) {
     this.service = service;
   }
 
+  // ... (getProfile, updateProfile, etc. are unchanged)
   async getProfile(req, res, next) {
     try {
-      const user = await this.service.getById(req.user.id, req.db);
+      const user = await this.service.getById(req.user.id);
       const { password, ...userWithoutPassword } = user;
       res.json(userWithoutPassword);
     } catch (error) {
@@ -20,7 +22,7 @@ class UserController {
         username,
         currentPassword,
         newPassword,
-      }, req.db);
+      });
 
       const { password, ...cleanUser } = updatedUser;
       res.json({
@@ -35,7 +37,7 @@ class UserController {
 
   async deleteProfile(req, res, next) {
     try {
-      await this.service.deleteUser(req.user.id, req.db);
+      await this.service.deleteUser(req.user.id);
       res.json({ message: "User profile deleted successfully." });
     } catch (error) {
       next(error);
@@ -44,7 +46,7 @@ class UserController {
 
   async createUser(req, res, next) {
     try {
-      const newUser = await this.service.createUserByAdmin(req.user, req.body, req.db);
+      const newUser = await this.service.createUserByAdmin(req.user, req.body);
       res.status(201).json({
         message: 'User created successfully',
         user: newUser,
@@ -56,7 +58,8 @@ class UserController {
 
   async getAll(req, res, next) {
     try {
-      const user = await this.service.getAllUsers(req.user, req.db);
+      // This is updated
+      const user = await this.service.getAllUsers(req.user);
       res.json(user);
     } catch (error) {
       next(error);
@@ -65,16 +68,18 @@ class UserController {
 
   async getAllPaginated(req, res, next) {
     try {
-      const result = await this.service.getPaginatedUsers(req.query, req.user, req.db);
+      // This is updated - Pass the full user object to the service
+      const result = await this.service.getPaginatedUsers(req.query, req.user);
       res.json(result);
     } catch (error) {
       next(error);
     }
   }
 
+  // ... (getById, updateUserById, etc. are unchanged)
   async getById(req, res, next) {
     try {
-      const user = await this.service.getById(req.params.id, req.db);
+      const user = await this.service.getById(req.params.id);
       const { password, ...userWithoutPassword } = user;
       res.json(userWithoutPassword);
     } catch (error) {
@@ -86,8 +91,7 @@ class UserController {
     try {
       const updatedUser = await this.service.updateUserByAdmin(
         req.params.id,
-        req.body,
-        req.db
+        req.body
       );
 
       const { password, ...cleanUser } = updatedUser;
@@ -102,7 +106,7 @@ class UserController {
 
   async deleteUserById(req, res, next) {
     try {
-      await this.service.deleteUser(req.params.id, req.db);
+      await this.service.deleteUser(req.params.id);
       res.json({ message: "User deleted successfully." });
     } catch (error) {
       next(error);

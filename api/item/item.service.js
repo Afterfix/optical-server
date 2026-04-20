@@ -1,7 +1,7 @@
 const {
   moveItemImage,
   deleteItemImageDirectory,
-} = require("../../../apps/gadgetx/middlewares/upload");
+} = require("../../../middlewares/upload");
 
 class ItemService {
   constructor(itemRepository) {

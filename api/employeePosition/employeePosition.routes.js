@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const validateToken = require("../../../apps/gadgetx/middlewares/validateToken");
+const validateToken = require("../../middlewares/validateToken");
 
 const EmployeePositionRepository = require("./employeePosition.repository");
-const TenantRepository = require("../../../api/tenant/tenant.repository");
+const TenantRepository = require("../../api/tenant/tenant.repository");
 const EmployeePositionService = require("./employeePositionservice");
 const EmployeePositionController = require("./employeePosition.controller");
 const EmployeePositionValidator = require("./employeePosition.validator");

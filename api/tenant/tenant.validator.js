@@ -1,15 +1,7 @@
 class TenantValidator {
   createValidator = (req, res, next) => {
-    const requiredFields = ['name', 'type', 'plan', 'username', 'password']
-    const allowedTypes = [
-      'vehicle',
-      'buildx',
-      'fitness',
-      'gadget',
-      'travelx',
-      'invoice',
-      'inventory',
-    ]
+    // 'type' is no longer required as it defaults to 'optical'
+    const requiredFields = ['name', 'plan', 'username', 'password']
     const missingFields = requiredFields.filter(
       (field) => !req.body[field] || req.body[field].toString().trim() === ''
     )
@@ -20,32 +12,11 @@ class TenantValidator {
       })
     }
 
-    if (!allowedTypes.includes(req.body.type)) {
-      return res.status(400).json({
-        error: `Invalid type. Allowed values are: ${allowedTypes.join(', ')}`,
-      })
-    }
-
     next()
   }
 
   updateValidator = (req, res, next) => {
-    const requiredFields = ['name', 'type', 'plan', 'username', 'password']
-    const allowedTypes = [
-      'vehicle',
-      'restaurant',
-      'fitness',
-      'garage',
-      'gadget',
-      'travelx',
-    ]
-
-    if (req.body.type && !allowedTypes.includes(req.body.type)) {
-      return res.status(400).json({
-        error: `Invalid type. Allowed values are: ${allowedTypes.join(', ')}`,
-      })
-    }
-
+    // Validation constraint removed. Type updates (if any) can be processed freely.
     next()
   }
 }

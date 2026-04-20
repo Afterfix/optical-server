@@ -4,7 +4,7 @@ class RoleService {
     this.tenantRepository = tenantRepository
   }
 
-  async create(roleData, user, db) {
+  async create(roleData, user) {
     let tenantIdForNewRole
 
     if (user.role === 'super_admin') {
@@ -16,7 +16,6 @@ class RoleService {
         throw error
       }
       const tenantExists = await this.tenantRepository.getById(
-        db,
         roleData.tenant_id
       )
       if (!tenantExists) {
@@ -32,7 +31,6 @@ class RoleService {
     }
 
     const existingRole = await this.roleRepository.findByName(
-      db,
       roleData.name,
       tenantIdForNewRole
     )
@@ -41,10 +39,10 @@ class RoleService {
     }
 
     const dataToSave = { ...roleData, tenant_id: tenantIdForNewRole }
-    return await this.roleRepository.create(db, dataToSave)
+    return await this.roleRepository.create(dataToSave)
   }
 
-  async getAll(user, query = {}, db) {
+  async getAll(user, query = {}) {
     if (user.role === 'super_admin') {
       const { tenant_id } = query
       if (!tenant_id) {
@@ -54,17 +52,17 @@ class RoleService {
         error.statusCode = 400
         throw error
       }
-      return await this.roleRepository.getAllByTenantId(db, tenant_id)
+      return await this.roleRepository.getAllByTenantId(tenant_id)
     } else {
-      return await this.roleRepository.getAllByTenantId(db, user.tenant_id)
+      return await this.roleRepository.getAllByTenantId(user.tenant_id)
     }
   }
 
-  async getById(id, user, db) {
+  async getById(id, user) {
     const role =
       user.role === 'super_admin'
-        ? await this.roleRepository.getById(db, id)
-        : await this.roleRepository.getById(db, id, user.tenant_id)
+        ? await this.roleRepository.getById(id)
+        : await this.roleRepository.getById(id, user.tenant_id)
 
     if (!role) {
       throw new Error("Role not found or you don't have permission to view it.")
@@ -72,11 +70,11 @@ class RoleService {
     return role
   }
 
-  async update(id, roleData, user, db) {
-    const targetRole = await this.getById(id, user, db)
+  async update(id, roleData, user) {
+    // Find the role first to ensure it exists and to get its tenant_id
+    const targetRole = await this.getById(id, user)
 
     const existingRole = await this.roleRepository.findByName(
-      db,
       roleData.name,
       targetRole.tenant_id
     )
@@ -88,8 +86,8 @@ class RoleService {
 
     const updatedRole =
       user.role === 'super_admin'
-        ? await this.roleRepository.update(db, id, roleData)
-        : await this.roleRepository.update(db, id, roleData, user.tenant_id)
+        ? await this.roleRepository.update(id, roleData)
+        : await this.roleRepository.update(id, roleData, user.tenant_id)
 
     if (!updatedRole) {
       throw new Error(
@@ -99,8 +97,8 @@ class RoleService {
     return updatedRole
   }
 
-  async delete(id, user, db) {
-    const roleToDelete = await this.getById(id, user, db)
+  async delete(id, user) {
+    const roleToDelete = await this.getById(id, user)
 
     // Safeguard: prevent deletion of the super_admin role
     if (
@@ -114,8 +112,8 @@ class RoleService {
 
     const deletedRole =
       user.role === 'super_admin'
-        ? await this.roleRepository.delete(db, id)
-        : await this.roleRepository.delete(db, id, user.tenant_id)
+        ? await this.roleRepository.delete(id)
+        : await this.roleRepository.delete(id, user.tenant_id)
 
     if (!deletedRole) {
       throw new Error(

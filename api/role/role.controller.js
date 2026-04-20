@@ -5,7 +5,7 @@ class RoleController {
 
   async create(req, res, next) {
     try {
-      const newRole = await this.service.create(req.body, req.user, req.db);
+      const newRole = await this.service.create(req.body, req.user);
       res.status(201).json(newRole);
     } catch (error) {
       if (error.message.includes("already exists")) {
@@ -17,7 +17,7 @@ class RoleController {
 
   async getAll(req, res, next) {
     try {
-      const roles = await this.service.getAll(req.user, req.query, req.db);
+      const roles = await this.service.getAll(req.user, req.query);
       res.json(roles);
     } catch (error) {
       next(error);
@@ -26,7 +26,7 @@ class RoleController {
 
   async getById(req, res, next) {
     try {
-      const role = await this.service.getById(req.params.id, req.user, req.db);
+      const role = await this.service.getById(req.params.id, req.user);
       res.json(role);
     } catch (error) {
       res.status(404).json({ message: error.message });
@@ -38,8 +38,7 @@ class RoleController {
       const updatedRole = await this.service.update(
         req.params.id,
         req.body,
-        req.user,
-        req.db
+        req.user
       );
       res.json(updatedRole);
     } catch (error) {
@@ -55,7 +54,7 @@ class RoleController {
 
   async delete(req, res, next) {
     try {
-      await this.service.delete(req.params.id, req.user, req.db);
+      await this.service.delete(req.params.id, req.user);
       res.status(200).json({ message: "Role deleted successfully" });
     } catch (error) {
       if (error.statusCode === 403) {

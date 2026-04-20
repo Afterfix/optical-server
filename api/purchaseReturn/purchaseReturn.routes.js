@@ -2,7 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const validateToken = require('../../../apps/gadgetx/middlewares/validateToken');
+const validateToken = require('../../../middlewares/validateToken');
 
 const PurchaseReturnRepository = require('./purchaseReturn.repository');
 const PurchaseRepository = require('../purchase/purchase.repository');

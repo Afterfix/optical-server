@@ -1,64 +1,56 @@
-const express = require("express");
-const rateLimit = require("express-rate-limit");
-const router = express.Router();
+// features/auth/auth.routes.js
+const express = require('express')
+const router = express.Router()
 
-const validateToken = require("../../apps/physiquex/middlewares/validateToken");
-const UserRepository = require("../user/user.repository");
-const TokenRepository = require("../token/token.repository");
-const TokenService = require("../token/token.service");
-const AuthService = require("./auth.service");
-const AuthController = require("./auth.controller");
+const validateToken = require('../../middlewares/validateToken')
+const UserRepository = require('../user/user.repository')
+const TokenRepository = require('../token/token.repository')
+const TokenService = require('../token/token.service')
+const AuthService = require('./auth.service')
+const AuthController = require('./auth.controller')
+const db = require('../../config/db')
 
+// --- CORRECT IMPORT ---
+// Import the specific validator arrays and the validate middleware
 const {
   registerValidator,
   loginValidator,
   validate,
-} = require("./auth.validator");
+} = require('./auth.validator')
 
-const userRepository = new UserRepository();
-const tokenRepository = new TokenRepository();
-const tokenService = new TokenService(tokenRepository, userRepository);
-const authService = new AuthService(userRepository, tokenService);
-const authController = new AuthController(authService, tokenService);
-
-const loginLimiter = rateLimit({
-  windowMs: Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
-  max: Number(process.env.AUTH_LOGIN_RATE_LIMIT_MAX || 10),
-  standardHeaders: true,
-  legacyHeaders: false,
-  skipSuccessfulRequests: true,
-  message: "Too many failed login attempts. Please try again later.",
-});
-
-const authActionLimiter = rateLimit({
-  windowMs: Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
-  max: Number(process.env.AUTH_ACTION_RATE_LIMIT_MAX || 60),
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: "Too many authentication requests. Please try again later.",
-});
+// --- Dependency Injection ---
+const userRepository = new UserRepository(db)
+const tokenRepository = new TokenRepository(db)
+const tokenService = new TokenService(tokenRepository, userRepository)
+const authService = new AuthService(userRepository, tokenService)
+const authController = new AuthController(authService, tokenService)
 
 // --- Public Routes ---
 router.post(
-  "/login",
-  loginLimiter,
-  loginValidator,
-  validate,
+  '/login',
+  loginValidator, // Apply the validation rules for login
+  validate, // Check for validation errors
   authController.login.bind(authController)
-);
+)
 
 router.post(
-  "/register",
-  authActionLimiter,
-  registerValidator,
-  validate,
+  '/register',
+  registerValidator, // Apply the validation rules for registration
+  validate, // Check for validation errors
   authController.register.bind(authController)
-);
+)
+
+router.post(
+  '/register',
+  registerValidator, // Apply the validation rules for registration
+  validate, // Check for validation errors
+  authController.register.bind(authController)
+)
 
 // --- Protected Routes ---
-router.use(validateToken);
+router.use(validateToken)
 
-router.post("/logout", authActionLimiter, authController.logout.bind(authController));
-router.post("/refresh", authActionLimiter, authController.refreshToken.bind(authController));
+router.post('/logout', authController.logout.bind(authController))
+router.post('/refresh', authController.refreshToken.bind(authController))
 
-module.exports = router;
+module.exports = router

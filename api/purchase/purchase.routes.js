@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const validateToken = require("../../../apps/gadgetx/middlewares/validateToken");
+const validateToken = require("../../../middlewares/validateToken");
 
 const PurchaseRepository = require("./purchase.repository");
 const PurchaseService = require("./purchase.service");

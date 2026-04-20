@@ -1,8 +1,11 @@
 class RoleRepository {
+  constructor(db) {
+    this.db = db;
+  }
 
-  async create(db, roleData) {
+  async create(roleData) {
     const { tenant_id, name, permissions } = roleData;
-    const { rows } = await db.query(
+    const { rows } = await this.db.query(
       `INSERT INTO "role" (tenant_id, name, permissions)
        VALUES ($1, $2, $3)
        RETURNING id, name, permissions, tenant_id`,
@@ -11,15 +14,15 @@ class RoleRepository {
     return rows[0];
   }
 
-  async getAllByTenantId(db, tenantId) {
-    const { rows } = await db.query(
+  async getAllByTenantId(tenantId) {
+    const { rows } = await this.db.query(
       'SELECT id, name, permissions FROM "role" WHERE tenant_id = $1 ORDER BY created_at DESC',
       [tenantId]
     );
     return rows;
   }
 
-  async getById(db, id, tenantId = null) {
+  async getById(id, tenantId = null) {
     let query = 'SELECT id, name, permissions, tenant_id FROM "role" WHERE id = $1';
     const params = [id];
 
@@ -28,11 +31,11 @@ class RoleRepository {
       params.push(tenantId);
     }
 
-    const { rows } = await db.query(query, params);
+    const { rows } = await this.db.query(query, params);
     return rows[0];
   }
 
-  async update(db, id, data, tenantId = null) {
+  async update(id, data, tenantId = null) {
     const { name, permissions } = data;
     let query = `UPDATE "role" SET name = $1, permissions = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`;
     const params = [name, JSON.stringify(permissions), id];
@@ -44,11 +47,11 @@ class RoleRepository {
     
     query += ` RETURNING id, name, permissions`;
 
-    const { rows } = await db.query(query, params);
+    const { rows } = await this.db.query(query, params);
     return rows[0];
   }
 
-  async delete(db, id, tenantId = null) {
+  async delete(id, tenantId = null) {
     let query = 'DELETE FROM "role" WHERE id = $1';
     const params = [id];
 
@@ -59,11 +62,11 @@ class RoleRepository {
     
     query += " RETURNING id";
 
-    const { rows } = await db.query(query, params);
+    const { rows } = await this.db.query(query, params);
     return rows[0];
   }
 
-  async findByName(db, name, tenantId = null) {
+  async findByName(name, tenantId = null) {
     let query = 'SELECT id, name FROM "role" WHERE name = $1';
     const params = [name];
     
@@ -74,7 +77,7 @@ class RoleRepository {
         query += ' AND tenant_id IS NULL';
     }
 
-    const { rows } = await db.query(query, params);
+    const { rows } = await this.db.query(query, params);
     return rows[0];
   }
 }

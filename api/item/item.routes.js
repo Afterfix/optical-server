@@ -1,11 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const validateToken = require("../../../apps/gadgetx/middlewares/validateToken");
+const validateToken = require("../../../middlewares/validateToken");
 const ItemRepository = require("./item.repository");
 const ItemService = require("./item.service");
 const ItemController = require("./item.controller");
 const ItemValidator = require("./item.validator");
-const { upload } = require("../../../apps/gadgetx/middlewares/upload"); 
+const { upload } = require("../../../middlewares/upload"); 
 
 // Initialize without db injection
 const itemRepository = new ItemRepository();

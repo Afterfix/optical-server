@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const validateToken = require('../../../apps/gadgetx/middlewares/validateToken')
+const validateToken = require('../../../middlewares/validateToken')
 
 const CategoryRepository = require('./category.repository')
 const TenantRepository = require('../../../api/tenant/tenant.repository');

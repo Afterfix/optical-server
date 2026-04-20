@@ -1,12 +1,11 @@
 class UserService {
-  constructor(repository, tokenService, tenantRepository, userSettingsRepository) {
+  constructor(repository, tokenService) {
     this.repository = repository;
     this.tokenService = tokenService;
-    this.tenantRepository = tenantRepository;
-    this.userSettingsRepository = userSettingsRepository;
   }
 
-  async createUserByAdmin(creatingAdmin, userData, db) {
+  // ... (createUserByAdmin is unchanged)
+  async createUserByAdmin(creatingAdmin, userData) {
     const { username, password, role_id } = userData;
 
     if (!username || !password || !role_id) {
@@ -15,7 +14,7 @@ class UserService {
       throw error;
     }
 
-    const existingUser = await this.repository.getByName(db, username);
+    const existingUser = await this.repository.getByName(username);
     if (existingUser) {
       const error = new Error("A user with this username already exists.");
       error.statusCode = 409;
@@ -30,111 +29,43 @@ class UserService {
       role_id,
       tenant_id,
     };
-    
-    const createdUser = await this.repository.create(db, newUser);
 
-    // --- CHECK FOR VEHICLE TENANT AND CREATE SETTINGS ---
-    if (tenant_id) {
-      const tenant = await this.tenantRepository.getById(db, tenant_id);
-      
-      if (tenant && tenant.type === 'vehicle') {
-        const existingSettings = await this.userSettingsRepository.getByTenantId(db, tenant_id);
-        
-        if (!existingSettings) {
-          console.log(`ℹ️ Tenant type is 'vehicle'. Creating default user_settings for tenant ${tenant_id}.`);
-          
-          try {
-            await this.userSettingsRepository.create(db, tenant_id, {
-                permissions: [],
-                plan: tenant.plan,
-                vehicle_info: {}, 
-                company_logo: '',
-                cost_center: ''
-            });
-          } catch(err) {
-             console.warn("Could not create user settings (table might be missing):", err.message);
-          }
-        }
-      }
-    }
-
-    return this.getById(createdUser.id, db);
+    return this.repository.create(newUser);
   }
 
-  async getAllUsers(adminUser, db) {
-    const users = await this.repository.getAll(db, adminUser);
-    return this.attachSettingsToUsers(users, db);
+  async getAllUsers(adminUser) {
+    // This is updated
+    return this.repository.getAll(adminUser);
   }
 
-  async getPaginatedUsers(filters, adminUser, db) {
+  async getPaginatedUsers(filters, adminUser) {
+    // This is updated - Pass the adminUser to the repository
     const { user, totalCount } = await this.repository.getPaginated(
-      db,
       filters,
       adminUser
     );
-    
-    const usersWithSettings = await this.attachSettingsToUsers(user, db);
-
     const pageSize = filters.page_size ? parseInt(filters.page_size, 10) : 10;
     const page_count = totalCount > 0 ? Math.ceil(totalCount / pageSize) : 0;
 
     return {
-      data: usersWithSettings,
+      data: user,
       count: totalCount,
       page_count,
     };
   }
 
-  // Helper to attach settings conditionally
-  async attachSettingsToUsers(users, db) {
-    return Promise.all(users.map(async (u) => {
-        if (u.tenant_type === 'vehicle' && u.tenant_id) {
-            try {
-                const settings = await this.userSettingsRepository.getByTenantId(db, u.tenant_id);
-                if (settings) {
-                    return {
-                        ...u,
-                        vehicle_info: settings.vehicle_info,
-                        company_logo: settings.company_logo,
-                        settings_plan: settings.plan
-                    };
-                }
-            } catch (err) {
-                // Safely ignore if table doesn't exist
-            }
-        }
-        return u;
-    }));
-  }
-
-  async getById(id, db) {
-    const user = await this.repository.getById(db, id);
+  // ... (other methods are unchanged)
+  async getById(id) {
+    const user = await this.repository.getById(id);
     if (!user) {
       const error = new Error("User not found");
       error.statusCode = 404;
       throw error;
     }
-
-    // Attach Settings if Vehicle
-    if (user.tenant_type === 'vehicle' && user.tenant_id) {
-        try {
-            const settings = await this.userSettingsRepository.getByTenantId(db, user.tenant_id);
-            if (settings) {
-                user.settings_id = settings.id;
-                user.vehicle_info = settings.vehicle_info;
-                user.company_logo = settings.company_logo;
-                user.settings_plan = settings.plan;
-                user.cost_center = settings.cost_center;
-            }
-        } catch (err) {
-            console.warn(`⚠️ Could not fetch user settings for user ${id}:`, err.message);
-        }
-    }
-
     return user;
   }
 
-  async updateUserProfile(id, { username, currentPassword, newPassword }, db) {
+  async updateUserProfile(id, { username, currentPassword, newPassword }) {
     if (newPassword) {
       if (!currentPassword) {
         const error = new Error(
@@ -144,7 +75,7 @@ class UserService {
         throw error;
       }
 
-      const user = await this.repository.getById(db, id);
+      const user = await this.repository.getById(id);
       if (!user) {
         const error = new Error("User not found");
         error.statusCode = 404;
@@ -163,11 +94,11 @@ class UserService {
       }
     }
 
-    return this.repository.update(db, id, { username, password: newPassword });
+    return this.repository.update(id, { username, password: newPassword });
   }
 
-  async updateUserByAdmin(id, data, db) {
-    const existingUser = await this.getById(id, db);
+  async updateUserByAdmin(id, data) {
+    const existingUser = await this.getById(id);
     if (!existingUser) {
       const error = new Error("User not found");
       error.statusCode = 404;
@@ -182,11 +113,11 @@ class UserService {
       throw error;
     }
 
-    return this.repository.updateByAdmin(db, id, data);
+    return this.repository.updateByAdmin(id, data);
   }
 
-  async deleteUser(id, db) {
-    const user = await this.getById(id, db);
+  async deleteUser(id) {
+    const user = await this.getById(id);
     if (!user) {
       const error = new Error("User not found");
       error.statusCode = 404;
@@ -199,8 +130,8 @@ class UserService {
       throw error;
     }
 
-    await this.tokenService.removeAllRefreshTokensForUser(id, db);
-    return this.repository.delete(db, id);
+    await this.tokenService.removeAllRefreshTokensForUser(id);
+    return this.repository.delete(id);
   }
 }
 

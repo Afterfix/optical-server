@@ -4,7 +4,7 @@ const InvoiceNumberService = require('./invoiceNumber.service.js')
 const InvoiceNumberController = require('./invoiceNumber.controller.js')
 const InvoiceNumberValidator = require('./invoiceNumber.validator.js')
 
-const validateToken = require('../../../apps/gadgetx/middlewares/validateToken')
+const validateToken = require('../../../middlewares/validateToken')
 
 const router = express.Router()
 

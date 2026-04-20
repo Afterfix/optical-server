@@ -5,7 +5,7 @@ class TenantController {
 
     async create(req, res, next) {
         try {
-            const newTenant = await this.service.create(req.body, req.db);
+            const newTenant = await this.service.create(req.body);
             res.status(201).json(newTenant);
         } catch (error) {
             next(error);
@@ -14,7 +14,7 @@ class TenantController {
 
     async getAll(req, res, next) {
         try {
-            const data = await this.service.getAll(req.query, req.db);
+            const data = await this.service.getAll(req.query);
             res.json(data);
         } catch (error) {
             next(error);
@@ -23,7 +23,7 @@ class TenantController {
 
     async getById(req, res, next) {
         try {
-            const tenant = await this.service.getById(req.params.id, req.db);
+            const tenant = await this.service.getById(req.params.id);
             if (!tenant) {
                 return res.status(404).json({ message: 'Tenant not found' });
             }
@@ -35,7 +35,7 @@ class TenantController {
 
     async update(req, res, next) {
         try {
-            const updatedTenant = await this.service.update(req.params.id, req.body, req.db);
+            const updatedTenant = await this.service.update(req.params.id, req.body);
             if (!updatedTenant) {
                 return res.status(404).json({ message: 'Tenant not found' });
             }
@@ -47,7 +47,7 @@ class TenantController {
 
     async delete(req, res, next) {
         try {
-            const result = await this.service.delete(req.params.id, req.db);
+            const result = await this.service.delete(req.params.id);
             if (!result) {
                 return res.status(404).json({ message: 'Tenant not found' });
             }
