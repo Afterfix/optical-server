@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const validateToken = require("../../../middlewares/validateToken");
+const validateToken = require("../../middlewares/validateToken");
 
 const BrandRepository = require("./brand.repository");
-const TenantRepository = require("../../../api/tenant/tenant.repository");
+const TenantRepository = require("../../api/tenant/tenant.repository");
 const BrandService = require("./brand.service");
 const BrandController = require("./brand.controller");
 const BrandValidator = require("./brand.validator");

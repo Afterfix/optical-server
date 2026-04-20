@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const validateToken = require('../../../middlewares/validateToken');
+const validateToken = require('../../middlewares/validateToken');
 const CustomerRepository = require('./customer.repository');
 const CustomerService = require('./customer.service');
 const CustomerController = require('./customer.controller');
