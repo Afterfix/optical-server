@@ -14,7 +14,7 @@ const employeepositionRoutes = require("./api/employeeposition/employeeposition.
 const expenseTypeRoutes = require("./api/expenseType/expenseType.routes");
 const cost_centerRoutes = require('./api/costCenter/costCenter.routes')
 const done_byRoutes = require('./api/doneBy/doneBy.routes')
-// const settingsRoutes = require('./api/settings/settings.routes')
+const settingsRoutes = require('./api/settings/settings.routes')
 const roleRoutes = require('./api/role/role.routes')
 const tenantRoutes = require('./api/tenant/tenant.routes')
 const frameRoutes = require('./api/frame/frame.routes')
@@ -52,7 +52,7 @@ app.use("/api/employee-position", employeepositionRoutes);
 app.use('/api/expense-type', expenseTypeRoutes);
 app.use('/api/cost-centers', cost_centerRoutes)
 app.use('/api/done-by', done_byRoutes)
-// app.use('/api/settings', settingsRoutes)
+app.use('/api/settings', settingsRoutes)
 app.use('/api/roles', roleRoutes)
 app.use('/api/tenant', tenantRoutes)
 app.use('/api/frames', frameRoutes)

@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
 // const db = require('../../config/db'); // No longer needed
-const validateToken = require('../../../middlewares/validateToken');
-const isAdminOrSuperAdmin = require('../../../middlewares/isAdminOrSuperAdmin'); // This is updated
+const validateToken = require('../../middlewares/validateToken');
+const isAdminOrSuperAdmin = require('../../middlewares/isAdminOrSuperAdmin'); // This is updated
 
 const SettingsRepository = require('./settings.repository');
 const SettingsService = require('./settings.service');
 const SettingsController = require('./settings.controller');
 const SettingsValidator = require('./settings.validator');
-const UserRepository = require('../../../api/user/user.repository'); // This is updated
+const UserRepository = require('../../api/user/user.repository'); // This is updated
 
 const repository = new SettingsRepository();
 const userRepository = new UserRepository(); // This is updated
