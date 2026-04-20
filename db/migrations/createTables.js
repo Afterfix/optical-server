@@ -26,6 +26,10 @@ const createSaleReturnTable = require("../../api/saleReturn/saleReturn.table.js"
 const createSalesTable = require("../../api/sales/sales.table.js");
 const createDoneByTable = require("../../api/doneBy/doneBy.table.js");
 const createCostCenterTable = require("../../api/costCenter/costcenter.table.js");
+const createFrameTable = require("../../api/frame/frame.table.js");
+const createFrameVariantTable = require("../../api/frameVarient/frameVariant.table.js");
+const createLensesTable = require("../../api/lenses/lenses.table.js");
+const createLensAddonsTable = require("../../api/lensesAddons/lensAddons.table.js");
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -40,16 +44,19 @@ const createTables = async () => {
     await createSettingsTable(client);
     await createDoneByTable(client);
     await createCostCenterTable(client);
-  
-
+    await createFrameTable(client);
+    await createFrameVariantTable(client);
+    await createLensesTable(client);
+    await createLensAddonsTable(client);
+    
     // // Setup tables
     // await createEmployeePositionTable(client);
     // await createEmployeeTable(client);
     // await createPayrollTable(client);
 
     // // Business entities
-    // await createBrandTable(client);
-    // await createCategoryTable(client);
+    await createBrandTable(client);
+    await createCategoryTable(client);
     // await createCustomerTable(client);
     // await createModeOfPaymentTable(client);
     // await createInvoiceNumberTable(client);

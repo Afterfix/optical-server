@@ -17,7 +17,10 @@ const done_byRoutes = require('./api/doneBy/doneBy.routes')
 // const settingsRoutes = require('./api/settings/settings.routes')
 const roleRoutes = require('./api/role/role.routes')
 const tenantRoutes = require('./api/tenant/tenant.routes')
-
+const frameRoutes = require('./api/frame/frame.routes')
+const frameVariantRoutes = require('./api/frameVarient/frameVariant.routes')
+const lensesRoutes = require('./api/lenses/lenses.routes')
+const lensAddonsRoutes = require('./api/lensesAddons/lensAddons.routes')
 
 
 const app = express();
@@ -40,7 +43,10 @@ app.use('/api/done-by', done_byRoutes)
 // app.use('/api/settings', settingsRoutes)
 app.use('/api/roles', roleRoutes)
 app.use('/api/tenant', tenantRoutes)
-
+app.use('/api/frames', frameRoutes)
+app.use('/api/frame-variants', frameVariantRoutes)
+app.use('/api/lenses', lensesRoutes)
+app.use('/api/lens-addons', lensAddonsRoutes)
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
