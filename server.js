@@ -5,7 +5,6 @@ const express = require("express");
 
 const authRoutes = require("./api/auth/auth.routes");
 const userRoutes = require("./api/user/user.routes");
-const prescriptionRoutes = require("./api/Prescriptions/prescription.routes");
 
 // const employeeRoutes = require("./api/employee/employee.routes");
 const employeepositionRoutes = require("./api/employeeposition/employeeposition.routes");
@@ -18,6 +17,12 @@ const done_byRoutes = require('./api/doneBy/doneBy.routes')
 // const settingsRoutes = require('./api/settings/settings.routes')
 const roleRoutes = require('./api/role/role.routes')
 const tenantRoutes = require('./api/tenant/tenant.routes')
+const frameRoutes = require('./api/frame/frame.routes')
+const frameVariantRoutes = require('./api/frameVarient/frameVariant.routes')
+const lensesRoutes = require('./api/lenses/lenses.routes')
+const lensAddonsRoutes = require('./api/lensesAddons/lensAddons.routes')
+const prescriptionRoutes = require("./api/Prescriptions/prescription.routes");
+
 const db = require("./config/db");
 
 const app = express();
@@ -46,6 +51,10 @@ app.use('/api/done-by', done_byRoutes)
 // app.use('/api/settings', settingsRoutes)
 app.use('/api/roles', roleRoutes)
 app.use('/api/tenant', tenantRoutes)
+app.use('/api/frames', frameRoutes)
+app.use('/api/frame-variants', frameVariantRoutes)
+app.use('/api/lenses', lensesRoutes)
+app.use('/api/lens-addons', lensAddonsRoutes)
 app.use("/api/prescriptions", prescriptionRoutes);
 
 
