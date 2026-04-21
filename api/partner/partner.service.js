@@ -8,29 +8,26 @@ class PartnerService {
   }
 
   async create(partnerData, db) {
-    const client = await db.connect();
     try {
-      await client.query("BEGIN");
+      await db.query("BEGIN");
 
       const newPartner = await this.partnerRepository.create(
-        client,
+        db,
         partnerData,
       );
 
-      await client.query("COMMIT");
+      await db.query("COMMIT");
       return {
         status: "success",
         data: newPartner,
       };
     } catch (error) {
-      await client.query("ROLLBACK");
+      await db.query("ROLLBACK");
       // Handle Unique Constraint (Postgres code 23505)
       if (error.code === "23505") {
         throw new Error(`Partner name "${partnerData.name}" already exists.`);
       }
       throw error;
-    } finally {
-      client.release();
     }
   }
 

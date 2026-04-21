@@ -37,9 +37,9 @@ class PartyService {
   }
 
   async create(partyData, user, db) {
-    const client = await db.connect();
     try {
-      await client.query("BEGIN");
+      // Start transaction using the passed db object directly
+      await db.query("BEGIN");
 
       // 1. Prepare data for the Ledger
       const ledgerName = `${partyData.name} - ${partyData.type.toUpperCase()}`;
@@ -54,10 +54,13 @@ class PartyService {
       // 2. Create the Ledger
       const newLedgerResponse = await this.ledgerService.create(
         ledgerData,
-        client,
+        db,
       );
 
-      if (!newLedgerResponse?.data?.id) {
+      // Robust check for Ledger ID (handles both wrapped and unwrapped responses)
+      const ledgerId = newLedgerResponse?.data?.id || newLedgerResponse?.id;
+
+      if (!ledgerId) {
         throw new Error(
           "Failed to create a linked ledger account for this party.",
         );
@@ -67,16 +70,17 @@ class PartyService {
       const dataToSave = {
         ...partyData,
         tenant_id: user.tenant_id,
-        ledger_id: newLedgerResponse.data.id,
+        ledger_id: ledgerId,
       };
 
       // 4. Save the Party
-      const newParty = await this.partyRepository.create(client, dataToSave);
+      const newParty = await this.partyRepository.create(db, dataToSave);
 
-      await client.query("COMMIT");
+      await db.query("COMMIT");
       return { status: "success", data: newParty };
     } catch (error) {
-      await client.query("ROLLBACK");
+      // Rollback on error
+      await db.query("ROLLBACK");
 
       // Handle Unique Constraint (Postgres code 23505)
       if (error.code === "23505") {
@@ -85,8 +89,6 @@ class PartyService {
         );
       }
       throw error;
-    } finally {
-      client.release();
     }
   }
 
