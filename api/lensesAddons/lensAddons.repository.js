@@ -154,6 +154,17 @@ class LensAddonsRepository {
     const { rows } = await db.query(query, params);
     return rows[0];
   }
+
+  async updateStock(db, id, quantityChange) {
+    const query = `
+      UPDATE lens_addons 
+      SET stock = stock + $1 
+      WHERE id = $2 
+      RETURNING id, stock;
+    `;
+    const { rows } = await db.query(query, [quantityChange, id]);
+    return rows[0];
+  }
 }
 
 module.exports = LensAddonsRepository;

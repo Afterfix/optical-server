@@ -36,6 +36,7 @@ const createPartyTable = require("../../api/party/party.table.js");
 const createLedgerTable = require("../../api/ledger/ledger.table.js");
 const createVoucherTable = require("../../api/voucher/voucher.table.js");
 const createReportFieldPermissionsTable = require("../../api/reportFieldPermissions/reportFieldPermissions.table.js");
+const createVoucherTransactionTable = require("../../api/voucherTransaction/voucherTransaction.table.js");
 
 const createTrasactionLedgerTable = require("../../api/transactionLedger/transactionLedger.table.js");
 const createTransactionFieldPermissionsTable = require("../../api/transactionFieldPermissions/transactionFieldPermissions.table.js");
@@ -84,6 +85,7 @@ const createTables = async () => {
     await createAccountTable(client);
     await createModeOfPaymentTable(client);
     await createVoucherTable(client);
+    await createVoucherTransactionTable(client);
     await createPayrollTable(client);
 
     // // Business entities
@@ -99,11 +101,11 @@ const createTables = async () => {
     // // Inventory
 
     // // Transactions
-    // await createPurchaseTable(client);
-    // await createPurchaseItemTable(client);
+    await createPurchaseTable(client);
+    await createPurchaseItemTable(client);
     // await createPurchaseReturnTable(client);
 
-    await createSalesTable(client);
+    // await createSalesTable(client);
     // await createSaleItemTable(client);
     // await createSaleReturnTable(client);
 

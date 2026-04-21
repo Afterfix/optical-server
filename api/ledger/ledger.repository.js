@@ -64,6 +64,12 @@ class LedgerRepository {
     return { query, params, paramIndex };
   }
 
+  async linkToParty(db, ledgerId, partyId, tenantId) {
+    const query = `UPDATE party SET ledger_id = $1 WHERE id = $2 AND tenant_id = $3 RETURNING id;`;
+    const { rows } = await db.query(query, [ledgerId, partyId, tenantId]);
+    return rows[0];
+  }
+
   // --- CRUD Operations (Keep existing) ---
   async adjustBalance(db, ledgerId, tenantId, amount) {
     const query = `UPDATE ledger SET balance = balance + $1 WHERE id = $2 AND tenant_id = $3 RETURNING id, balance;`;
@@ -75,7 +81,7 @@ class LedgerRepository {
     const { tenant_id, name, balance, done_by_id, cost_center_id } = ledgerData;
     const { rows } = await db.query(
       `INSERT INTO ledger (tenant_id, name, balance, done_by_id, cost_center_id) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [tenant_id, name, balance, done_by_id || null, cost_center_id || null]
+      [tenant_id, name, balance || 0, done_by_id || null, cost_center_id || null]
     );
     return rows[0];
   }
@@ -106,10 +112,12 @@ class LedgerRepository {
 
   async getById(db, id, tenantId) {
     const query = `
-        SELECT l.*, db.name as done_by_name, cc.name as cost_center_name
+        SELECT l.*, db.name as done_by_name, cc.name as cost_center_name,
+               p.type as party_type, p.created_at as party_created_at, p.id as party_id
         FROM ledger l
         LEFT JOIN "done_by" db ON l.done_by_id = db.id
         LEFT JOIN "cost_center" cc ON l.cost_center_id = cc.id
+        LEFT JOIN "party" p ON l.id = p.ledger_id
         WHERE l.id = $1 AND l.tenant_id = $2;
     `;
     const { rows } = await db.query(query, [id, tenantId]);
@@ -118,10 +126,12 @@ class LedgerRepository {
 
   async getAllByTenantId(db, tenantId, filters = {}) {
     const baseQuery = `
-      SELECT l.*, db.name as done_by_name, cc.name as cost_center_name
+      SELECT l.*, db.name as done_by_name, cc.name as cost_center_name,
+             p.type as party_type, p.created_at as party_created_at, p.id as party_id
       FROM ledger l
       LEFT JOIN "done_by" db ON l.done_by_id = db.id
       LEFT JOIN "cost_center" cc ON l.cost_center_id = cc.id
+      LEFT JOIN "party" p ON l.id = p.ledger_id
       WHERE l.tenant_id = $1`;
     const { query, params } = this._buildQuery(baseQuery, tenantId, filters);
     const { rows } = await db.query(query, params);
@@ -133,10 +143,13 @@ class LedgerRepository {
     const limit = parseInt(page_size, 10);
     const offset = (parseInt(page, 10) - 1) * limit;
     const baseQuery = `
-      SELECT l.*, db.name as done_by_name, cc.name as cost_center_name, COUNT(*) OVER() as total_count 
+      SELECT l.*, db.name as done_by_name, cc.name as cost_center_name, 
+             p.type as party_type, p.created_at as party_created_at, p.id as party_id,
+             COUNT(*) OVER() as total_count 
       FROM ledger l
       LEFT JOIN "done_by" db ON l.done_by_id = db.id
       LEFT JOIN "cost_center" cc ON l.cost_center_id = cc.id
+      LEFT JOIN "party" p ON l.id = p.ledger_id
       WHERE l.tenant_id = $1
     `;
     let { query, params, paramIndex } = this._buildQuery(

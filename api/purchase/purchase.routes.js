@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const validateToken = require("../../../middlewares/validateToken");
+const validateToken = require("../../middlewares/validateToken");
 
 const PurchaseRepository = require("./purchase.repository");
 const PurchaseService = require("./purchase.service");
@@ -11,7 +11,7 @@ const LensesRepository = require("../lenses/lenses.repository");
 const LensAddonsRepository = require("../lensesAddons/lensAddons.repository");
 const FrameVariantRepository = require("../frameVarient/frameVariant.repository");
 const AccountRepository = require("../account/account.repository");
-const TenantRepository = require('../../../api/tenant/tenant.repository');
+const TenantRepository = require('../../api/tenant/tenant.repository');
 
 // --- Dependency Injection for Voucher Service ---
 // We need VoucherService to create vouchers from Purchase

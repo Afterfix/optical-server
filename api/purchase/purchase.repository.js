@@ -147,7 +147,7 @@ class PurchaseRepository {
             FROM voucher_transactions vt
             JOIN voucher v ON vt.voucher_id = v.id
             JOIN ledger l ON v.from_ledger_id = l.id
-            WHERE vt.invoice_id::integer = p.id 
+            WHERE vt.invoice_id = p.id::text 
               AND vt.invoice_type = 'PURCHASE'
               AND v.tenant_id = $2
           ) as payment_agg
@@ -192,7 +192,7 @@ class PurchaseRepository {
                     FROM voucher_transactions vt
                     JOIN voucher v ON vt.voucher_id = v.id
                     JOIN ledger l ON v.from_ledger_id = l.id
-                    WHERE vt.invoice_id::integer = p.id 
+                    WHERE vt.invoice_id = p.id::text 
                       AND vt.invoice_type = 'PURCHASE'
                   ) as payment_agg
                 ) as payment_methods
@@ -229,7 +229,7 @@ class PurchaseRepository {
           query += ` AND EXISTS (
             SELECT 1 FROM voucher_transactions vt
             JOIN voucher v ON vt.voucher_id = v.id
-            WHERE vt.invoice_id::integer = p.id 
+            WHERE vt.invoice_id = p.id::text 
             AND vt.invoice_type = 'PURCHASE' 
             AND v.from_ledger_id = $${paramIndex}
           )`;
@@ -356,7 +356,7 @@ class PurchaseRepository {
           whereClause += ` AND EXISTS (
             SELECT 1 FROM voucher_transactions vt
             JOIN voucher v ON vt.voucher_id = v.id
-            WHERE vt.invoice_id::integer = p.id 
+            WHERE vt.invoice_id = p.id::text 
             AND vt.invoice_type = 'PURCHASE' 
             AND v.from_ledger_id = $${paramIndex}
           )`;
@@ -422,7 +422,7 @@ class PurchaseRepository {
               FROM voucher_transactions vt
               JOIN voucher v ON vt.voucher_id = v.id
               JOIN ledger l ON v.from_ledger_id = l.id
-              WHERE vt.invoice_id::integer = p.id AND vt.invoice_type = 'PURCHASE'
+              WHERE vt.invoice_id = p.id::text AND vt.invoice_type = 'PURCHASE'
             ) as payment_agg
           ) as payment_methods
       ${fromAndJoins}

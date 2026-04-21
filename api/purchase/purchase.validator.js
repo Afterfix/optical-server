@@ -26,9 +26,10 @@ class PurchaseValidator {
     }
 
     for (const item of req.body.items) {
-      if (!item.item_id || !item.quantity || item.unit_price === undefined) {
+      const hasOpticalId = item.frame_variant_id || item.lens_id || item.lens_addon_id;
+      if (!hasOpticalId || !item.quantity || item.unit_price === undefined) {
         return res.status(400).json({
-          error: 'Each item must have item_id, quantity, and unit_price',
+          error: 'Each item must have a valid optical ID (frame, lens, or addon), quantity, and unit_price',
         });
       }
     }
