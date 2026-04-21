@@ -14,7 +14,6 @@ const createEmployeePositionTable = require("../../api/employeePosition/employee
 const createExpenseTypeTable = require("../../api/expenseType/expenseType.table.js");
 const createExpenseTable = require("../../api/expense/expense.table.js");
 const createInvoiceNumberTable = require("../../api/invoiceNumber/invoiceNumber.table.js");
-const createItemTable = require("../../api/item/item.table.js");
 const createModeOfPaymentTable = require("../../api/modeOfPayment/modeOfPayment.table.js");
 const createPayrollTable = require("../../api/payroll/payroll.table.js");
 const createPurchaseTable = require("../../api/purchase/purchase.table.js");
@@ -42,12 +41,19 @@ const createTrasactionLedgerTable = require("../../api/transactionLedger/transac
 const createTransactionFieldPermissionsTable = require("../../api/transactionFieldPermissions/transactionFieldPermissions.table.js");
 const createTransactionTable = require("../../api/transaction/transaction.table.js");
 
+const createQueryTable = require("./tables/query.table.js");
+
 const createTables = async () => {
   const client = await pool.connect();
   try {
     console.log("🚀 Starting database migration...");
 
+    
+    // await createQueryTable(client);
+
     // Core tables
+
+
     await createTenantTable(client);
     await createRoleTable(client);
     await createUsersTable(client);
@@ -96,7 +102,7 @@ const createTables = async () => {
     // await createPurchaseItemTable(client);
     // await createPurchaseReturnTable(client);
 
-    // await createSalesTable(client);
+    await createSalesTable(client);
     // await createSaleItemTable(client);
     // await createSaleReturnTable(client);
 

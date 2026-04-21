@@ -2,6 +2,9 @@ module.exports = async (client) => {
   try {
     console.log("⏳ applying database updates...");
 
+    await client.query(updateSalesTable);
+    console.log("✅ Sales table updated (order_date, expected_delivery, actual_delivery, order_status added; date renamed to order_date).");
+
     // 1. Update Subscription Table (Amount, Paid, Account)
     await client.query(updateSubscriptionTable);
     console.log(
@@ -31,6 +34,23 @@ module.exports = async (client) => {
 };
 
 // --- Migration Queries ---
+
+const updateSalesTable = `
+ALTER TABLE sales 
+ADD COLUMN order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN expected_delivery TIMESTAMP,
+ADD COLUMN actual_delivery TIMESTAMP,
+ADD COLUMN order_status VARCHAR(20) DEFAULT 'pending';
+
+-- 1. Migrate existing date data to the new order_date column
+UPDATE sales SET order_date = date;
+
+-- 2. Rename the old 'status' column to 'payment_status'
+ALTER TABLE sales RENAME COLUMN status TO payment_status;
+
+-- 3. Remove the now-redundant 'date' column
+ALTER TABLE sales DROP COLUMN date;
+`;
 
 const updateSubscriptionTable = `
   ALTER TABLE subscription

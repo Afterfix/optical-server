@@ -2,7 +2,7 @@ class SalesValidator {
   createValidator = (req, res, next) => {
     const requiredFields = [
       'party_id',
-      'status',
+      'payment_status',
       'paid_amount',
       'items',
       'payment_methods',
@@ -23,9 +23,14 @@ class SalesValidator {
     }
 
     for (const item of req.body.items) {
-      if (!item.item_id || !item.quantity || item.unit_price === undefined) {
+      if (!item.frame_variant_id && !item.lens_id && !item.lens_addon_id) {
+          return res.status(400).json({
+              error: 'Each item must have a specific optical ID (frame_variant_id, lens_id, or lens_addon_id)',
+          })
+      }
+      if (!item.quantity || item.unit_price === undefined) {
         return res.status(400).json({
-          error: 'Each item must have item_id, quantity, and unit_price',
+          error: 'Each item must have quantity and unit_price',
         })
       }
     }
@@ -51,13 +56,21 @@ class SalesValidator {
       }
     }
 
+    const { order_status } = req.body;
+    const allowedStatuses = ['pending', 'in_progress', 'ready', 'delivered', 'cancelled'];
+    if (order_status && !allowedStatuses.includes(order_status)) {
+        return res.status(400).json({
+            error: `Invalid order_status. Must be one of: ${allowedStatuses.join(', ')}`,
+        });
+    }
+
     next()
   }
 
   updateValidator = (req, res, next) => {
     const requiredFields = [
       'party_id',
-      'status',
+      'payment_status',
       'paid_amount',
       'items',
       'payment_methods',
@@ -95,6 +108,14 @@ class SalesValidator {
           error: 'Each payment method must have account_id and amount',
         })
       }
+    }
+
+    const { order_status } = req.body;
+    const allowedStatuses = ['pending', 'in_progress', 'ready', 'delivered', 'cancelled'];
+    if (order_status && !allowedStatuses.includes(order_status)) {
+        return res.status(400).json({
+            error: `Invalid order_status. Must be one of: ${allowedStatuses.join(', ')}`,
+        });
     }
 
     next()
