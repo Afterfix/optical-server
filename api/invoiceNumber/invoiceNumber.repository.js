@@ -24,16 +24,24 @@ class InvoiceNumberRepository {
   }
 
   // 2️⃣ Get last used invoice number (not incrementing)
-  async get(db, { type, tenantId }) {
-    const res = await db.query(
-      `SELECT value
-       FROM invoice_number 
-       WHERE transaction_type = $1 AND tenant_id = $2`,
-      [type, tenantId]
-    )
+async get(db, { type, tenantId }) {
+  const res = await db.query(
+    `SELECT value FROM invoice_number 
+     WHERE transaction_type = $1 AND tenant_id = $2`, 
+     [type, tenantId] // <--- The database needs "type" here to find the right row!
+  )
 
     const value = res.rows[0]?.value || 0
     return this.formatInvoiceNumber(type, value)
+  }
+
+  // 3️⃣ Get all invoice sequences for a tenant
+  async getAll(db, tenantId) {
+    const res = await db.query(
+      `SELECT * FROM invoice_number WHERE tenant_id = $1 ORDER BY transaction_type ASC`,
+      [tenantId]
+    );
+    return res.rows;
   }
 }
 
