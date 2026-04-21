@@ -36,6 +36,7 @@ const invoiceNumberRoutes = require("./api/invoiceNumber/invoiceNumber.routes");
 const reportFieldPermissionsRoutes = require("./api/reportFieldPermissions/reportFieldPermissions.routes");
 const transactionFieldPermissionsRoutes = require("./api/transactionFieldPermissions/transactionFieldPermissions.routes");
 
+
 const db = require("./config/db");
 
 const app = express();

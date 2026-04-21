@@ -7,12 +7,22 @@ module.exports = async (client) => {
     const tableExists = result.rows[0].table_name !== null;
 
     if (tableExists) {
-      console.log('ℹ️ "prescription" table already exists.');
+      console.log('ℹ️ "prescription" table already exists. Checking for missing columns...');
+      // Ensure tenant_id exists
+      await client.query(`
+        DO $$ 
+        BEGIN 
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='prescription' AND column_name='tenant_id') THEN
+            ALTER TABLE prescription ADD COLUMN tenant_id INTEGER REFERENCES tenant(id) ON DELETE CASCADE;
+          END IF;
+        END $$;
+      `);
     } else {
       await client.query(`
         CREATE TABLE prescription (
           id SERIAL PRIMARY KEY,
-          customer_id INTEGER REFERENCES customer(id) ON DELETE CASCADE,
+          customer_id INTEGER REFERENCES party(id) ON DELETE CASCADE,
+          tenant_id INTEGER REFERENCES tenant(id) ON DELETE CASCADE,
           
           -- Prescription Values
           right_sph DECIMAL(6, 2),
@@ -32,14 +42,14 @@ module.exports = async (client) => {
         );
       `);
       console.log('✅ "prescription" table created.');
-
-      // Index for performance (frequently querying prescriptions by customer)
-      await client.query(
-        `CREATE INDEX idx_prescription_customer_id ON prescription(customer_id);`
-      );
-
-      console.log('✅ Index for "prescription" table created.');
     }
+
+    // Indices for performance
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_prescription_customer_id ON prescription(customer_id);
+      CREATE INDEX IF NOT EXISTS idx_prescription_tenant_id ON prescription(tenant_id);
+    `);
+    console.log('✅ Indices for "prescription" table ensured.');
   } catch (err) {
     console.error('❌ Error creating/updating "prescription" table:', err.message);
     throw err;
