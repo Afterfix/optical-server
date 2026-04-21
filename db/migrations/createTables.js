@@ -39,6 +39,8 @@ const createLedgerTable = require("../../api/ledger/ledger.table.js");
 const createVoucherTable = require("../../api/voucher/voucher.table.js");
 const createReportFieldPermissionsTable = require("../../api/reportFieldPermissions/reportFieldPermissions.table.js");
 
+const createTrasactionLedgerTable = require("../../api/transactionLedger/transactionLedger.table.js");
+const createTransactionTable = require("../../api/transaction/transaction.table.js");
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -66,6 +68,9 @@ const createTables = async () => {
 
     await createInvoiceNumberTable(client);
 
+    await createTransactionTable(client);
+    await createTrasactionLedgerTable(client);
+
     // // Setup tables
     await createEmployeePositionTable(client);
     await createEmployeeTable(client);
@@ -79,14 +84,13 @@ const createTables = async () => {
 
     // // Business entities
     await createCustomerTable(client);
-    // await createInvoiceNumberTable(client);
+    await createInvoiceNumberTable(client);
 
     // // Expense
     await createExpenseTypeTable(client);
     await createReportFieldPermissionsTable(client);
     await createExpenseTable(client);
     // // Inventory
-    // await createItemTable(client);
 
     // // Transactions
     // await createPurchaseTable(client);
