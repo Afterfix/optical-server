@@ -1,30 +1,29 @@
+// --- invoiceNumber.validator.js ---
 class InvoiceNumberValidator {
   getValidator = (req, res, next) => {
-    const requiredFields = ['type']
-    const missingFields = requiredFields.filter((field) => !req.query[field])
+    // Safely check query or body using ?. 
+    // This prevents the "reading 'type' of undefined" crash
+    const type = req.query?.type || req.body?.type;
 
-    if (missingFields.length > 0) {
-      return res.status(400).json({
-        error: `Missing required query parameters: ${missingFields.join(', ')}`,
-      })
-    }
+    // We allow missing type for listing all sequences
+    // So we don't return 400 here if type is missing.
+    // Validation can still be done if type IS provided, but for now we just proceed.
 
-    next()
-  }
+    next();
+  };
 
   generatorValidator = (req, res, next) => {
-    const requiredFields = ['type']
-    const missingFields = requiredFields.filter((field) => !req.body[field])
+    // Safely check body
+    const type = req.body?.type;
 
-    if (missingFields.length > 0) {
+    if (!type) {
       return res.status(400).json({
-        // FIX: Changed the error message to be more accurate
-        error: `Missing required fields in body: ${missingFields.join(', ')}`,
-      })
+        error: "Missing required field in body: type",
+      });
     }
 
-    next()
-  }
+    next();
+  };
 }
 
-module.exports = InvoiceNumberValidator
+module.exports = InvoiceNumberValidator;

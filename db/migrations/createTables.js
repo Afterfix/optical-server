@@ -33,6 +33,7 @@ const createLensAddonsTable = require("../../api/lensesAddons/lensAddons.table.j
 const createPrescriptionTable = require("../../api/Prescriptions/prescription.table.js");
 const createServicesTable = require("../../api/services/services.table.js");
 
+
 const createTables = async () => {
   const client = await pool.connect();
   try {
@@ -57,6 +58,8 @@ const createTables = async () => {
     await createPrescriptionTable(client);
     await createServicesTable(client);
 
+    await createInvoiceNumberTable(client);
+
     // // Setup tables
     await createEmployeePositionTable(client);
     await createEmployeeTable(client);
@@ -69,6 +72,7 @@ const createTables = async () => {
 
     // // Expense
     await createExpenseTypeTable(client);
+
     // await createExpenseTable(client);
 
     // // Inventory

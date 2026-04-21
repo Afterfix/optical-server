@@ -26,6 +26,7 @@ const servicesRoutes = require("./api/services/services.routes");
 const brandRoutes = require("./api/brand/brand.routes");
 const categoryRoutes = require("./api/category/category.routes");
 const customerRoutes = require("./api/customer/customer.routes");
+const invoiceNumberRoutes = require("./api/invoiceNumber/invoiceNumber.routes");
 
 const db = require("./config/db");
 
@@ -64,6 +65,7 @@ app.use("/api/services", servicesRoutes);
 app.use("/api/brand", brandRoutes);
 app.use("/api/category", categoryRoutes);
 app.use("/api/customer", customerRoutes);
+app.use("/api/invoice-number", invoiceNumberRoutes);
 
 
 app.use((err, req, res, next) => {
