@@ -9,7 +9,6 @@ const createSettingsTable = require("../../api/settings/settings.table.js");
 
 const createBrandTable = require("../../api/brand/brand.table.js");
 const createCategoryTable = require("../../api/category/category.table.js");
-const createCustomerTable = require("../../api/customer/customer.table.js");
 const createEmployeeTable = require("../../api/employee/employee.table.js");
 const createEmployeePositionTable = require("../../api/employeePosition/employeePosition.table.js");
 const createExpenseTypeTable = require("../../api/expenseType/expenseType.table.js");
@@ -63,7 +62,6 @@ const createTables = async () => {
     await createLensesTable(client);
     await createLensAddonsTable(client);
 
-    await createCustomerTable(client);
     await createPrescriptionTable(client);
     await createServicesTable(client);
 
@@ -84,7 +82,6 @@ const createTables = async () => {
     await createPayrollTable(client);
 
     // // Business entities
-    await createCustomerTable(client);
     await createInvoiceNumberTable(client);
 
     // // Expense
