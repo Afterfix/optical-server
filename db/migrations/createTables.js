@@ -68,7 +68,6 @@ const createTables = async () => {
     await createLensesTable(client);
     await createLensAddonsTable(client);
 
-    await createPrescriptionTable(client);
     await createServicesTable(client);
 
     await createInvoiceNumberTable(client);
@@ -97,6 +96,8 @@ const createTables = async () => {
     await createTransactionFieldPermissionsTable(client);
     await createExpenseTable(client);
     
+    await createPrescriptionTable(client);
+
     // // Inventory
 
     // // Transactions

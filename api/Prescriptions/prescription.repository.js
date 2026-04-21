@@ -1,6 +1,6 @@
 class PrescriptionRepository {
   _buildQueryParts(tenantId, filters = {}) {
-    const { sort, searchType, searchKey, customer_id, ...otherFilters } = filters;
+    const { sort, searchType, searchKey, start_date, end_date, ...otherFilters } = filters;
 
     let whereClause = "";
     const params = [];
@@ -18,6 +18,8 @@ class PrescriptionRepository {
     };
 
     let filterQuery = "";
+
+    // Regular filters
     Object.keys(otherFilters).forEach((key) => {
       if (otherFilters[key] != null && otherFilters[key] !== "" && filterConfig[key]) {
         const { operator, column } = filterConfig[key];
@@ -28,11 +30,22 @@ class PrescriptionRepository {
       }
     });
 
+    // Search logic
     if (searchType && searchKey != null && searchKey !== "" && filterConfig[searchType]) {
       const { operator, column } = filterConfig[searchType];
       filterQuery += ` AND ${column} ${operator} $${paramIndex}`;
       params.push(`%${searchKey}%`);
       paramIndex++;
+    }
+
+    // Date range logic
+    if (start_date) {
+      filterQuery += ` AND p.created_at >= $${paramIndex++}`;
+      params.push(start_date);
+    }
+    if (end_date) {
+      filterQuery += ` AND p.created_at <= $${paramIndex++}::date + interval '1 day'`;
+      params.push(end_date);
     }
 
     if (filterQuery) {
@@ -61,9 +74,9 @@ class PrescriptionRepository {
   async getAllByTenantId(db, tenantId, filters = {}) {
     const { whereClause, sortClause, params } = this._buildQueryParts(tenantId, filters);
     const query = `
-      SELECT p.*, c.name as customer_name, c.contact_no as customer_phone
+      SELECT p.*, c.name as customer_name, c.phone as customer_phone
       FROM prescription p
-      LEFT JOIN customer c ON p.customer_id = c.id
+      LEFT JOIN party c ON p.customer_id = c.id
       ${whereClause} 
       ${sortClause}
     `;
@@ -81,7 +94,7 @@ class PrescriptionRepository {
     let query = `
       SELECT p.*, c.name as customer_name, COUNT(*) OVER() as total_count 
       FROM prescription p
-      LEFT JOIN customer c ON p.customer_id = c.id
+      LEFT JOIN party c ON p.customer_id = c.id
       ${whereClause} 
       ${sortClause} 
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -108,9 +121,9 @@ class PrescriptionRepository {
 
   async getById(db, id, tenantId = null) {
     let queryText = `
-      SELECT p.*, c.name as customer_name, c.contact_no as customer_phone
+      SELECT p.*, c.name as customer_name, c.phone as customer_phone
       FROM prescription p
-      LEFT JOIN customer c ON p.customer_id = c.id
+      LEFT JOIN party c ON p.customer_id = c.id
       WHERE p.id = $1
     `;
     const params = [id];
