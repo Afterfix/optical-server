@@ -13,10 +13,9 @@ module.exports = async (client) => {
         CREATE TABLE lenses (
           id SERIAL PRIMARY KEY,
           tenant_id INTEGER REFERENCES "tenant"(id) ON DELETE CASCADE,
-          
           name VARCHAR(100) NOT NULL, -- e.g., 'Single Vision', 'Progressive'
-          index_value NUMERIC(4, 2),  -- e.g., 1.50, 1.60, 1.67
-          base_price NUMERIC(12, 2) DEFAULT 0,
+          index_value NUMERIC(4, 2) NOT NULL,  -- e.g., 1.50, 1.60, 1.67
+          base_price NUMERIC(12, 2) DEFAULT 0 NOT NULL,
           
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
