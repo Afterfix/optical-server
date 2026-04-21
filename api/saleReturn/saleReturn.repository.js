@@ -5,7 +5,9 @@ class SaleReturnRepository {
     const {
       tenant_id,
       sale_id,
-      item_id,
+      frame_variant_id,
+      lens_id,
+      lens_addon_id,
       return_quantity,
       date,
       reason,
@@ -15,21 +17,21 @@ class SaleReturnRepository {
       invoice_number,
     } = returnData;
 
-    // Initial status is pending, refunded_amount is 0.
-    // Voucher creation in Service will update these via updatePaymentAndStatus.
     const insertReturnQuery = `
       INSERT INTO sale_return(
-        tenant_id, sale_id, item_id, return_quantity, date,
-        reason, total_refund_amount, refunded_amount, status,
-        done_by_id, cost_center_id, invoice_number
+        tenant_id, sale_id, frame_variant_id, lens_id, lens_addon_id,
+        return_quantity, date, reason, total_refund_amount, refunded_amount,
+        status, done_by_id, cost_center_id, invoice_number
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 'pending', $8, $9, $10)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0, 'pending', $10, $11, $12)
       RETURNING *`;
 
     const { rows } = await dbClient.query(insertReturnQuery, [
       tenant_id,
       sale_id,
-      item_id,
+      frame_variant_id || null,
+      lens_id || null,
+      lens_addon_id || null,
       return_quantity,
       date || new Date(),
       reason,
@@ -80,14 +82,14 @@ class SaleReturnRepository {
           s.party_id,
           p.ledger_id as party_ledger_id,
           p.name as party_name,
-          i.name as item_name,
+          COALESCE(f.name || ' (' || fv.sku || ')', l.name, la.name) as item_name,
           (sr.total_refund_amount - sr.refunded_amount) as balance,
           (
             SELECT json_agg(v_agg)
             FROM (
               SELECT
                   v.id as voucher_id,
-                v.from_ledger_id as account_id, -- For Returns, money comes FROM the store account
+                v.from_ledger_id as account_id,
                 l.name as account_name,
                 vt.received_amount as amount,
                 v.mode_of_payment_id,
@@ -104,7 +106,10 @@ class SaleReturnRepository {
       FROM sale_return sr
       LEFT JOIN sales s ON sr.sale_id = s.id
       LEFT JOIN party p ON s.party_id = p.id
-      LEFT JOIN item i ON sr.item_id = i.id
+      LEFT JOIN frame_variants fv ON sr.frame_variant_id = fv.id
+      LEFT JOIN frame f ON fv.frame_id = f.id
+      LEFT JOIN lenses l ON sr.lens_id = l.id
+      LEFT JOIN lens_addons la ON sr.lens_addon_id = la.id
       WHERE sr.id = $1 AND sr.tenant_id = $2
     `;
     const { rows } = await db.query(query, [id, tenantId]);
@@ -128,11 +133,13 @@ class SaleReturnRepository {
       searchKey,
       start_date,
       end_date,
-      item_id,
+      frame_variant_id,
+      lens_id,
+      lens_addon_id,
       party_id,
       done_by_id,
       cost_center_id,
-      status, // Added status filter
+      status, 
       payment_due_only,
     } = filters;
     const limit = parseInt(page_size, 10);
@@ -140,7 +147,10 @@ class SaleReturnRepository {
 
     const fromAndJoins = `
         FROM sale_return sr
-        LEFT JOIN item i ON sr.item_id = i.id
+        LEFT JOIN frame_variants fv ON sr.frame_variant_id = fv.id
+        LEFT JOIN frame f ON fv.frame_id = f.id
+        LEFT JOIN lenses l ON sr.lens_id = l.id
+        LEFT JOIN lens_addons la ON sr.lens_addon_id = la.id
         LEFT JOIN sales s ON sr.sale_id = s.id
         LEFT JOIN party pa ON s.party_id = pa.id
         LEFT JOIN "done_by" db ON sr.done_by_id = db.id
@@ -153,7 +163,7 @@ class SaleReturnRepository {
 
     if (searchKey && searchType) {
       const searchConfig = {
-        item_name: "i.name",
+        item_name: "COALESCE(f.name, l.name, la.name)",
         party_name: "pa.name",
         invoice_number: "sr.invoice_number",
         reason: "sr.reason",
@@ -174,10 +184,18 @@ class SaleReturnRepository {
       whereClause += ` AND sr.date <= $${paramIndex++}`;
       params.push(end_date);
     }
-    if (item_id) {
-      whereClause += ` AND sr.item_id = $${paramIndex++}`;
-      params.push(item_id);
+    if (frame_variant_id) {
+      whereClause += ` AND sr.frame_variant_id = $${paramIndex++}`;
+      params.push(frame_variant_id);
     }
+    if (lens_id) {
+        whereClause += ` AND sr.lens_id = $${paramIndex++}`;
+        params.push(lens_id);
+      }
+      if (lens_addon_id) {
+        whereClause += ` AND sr.lens_addon_id = $${paramIndex++}`;
+        params.push(lens_addon_id);
+      }
     if (party_id) {
       whereClause += ` AND s.party_id = $${paramIndex++}`;
       params.push(party_id);
@@ -198,7 +216,6 @@ class SaleReturnRepository {
       whereClause += ` AND sr.total_refund_amount > sr.refunded_amount`;
     }
 
-    // --- AGGREGATION QUERY ---
     const aggregationQuery = `
         SELECT
             COALESCE(SUM(sr.total_refund_amount), 0) as total_refund_amount,
@@ -208,12 +225,13 @@ class SaleReturnRepository {
     `;
     const aggregationParams = [...params];
 
-    // --- MAIN PAGINATED QUERY ---
     let mainQuery = `
         SELECT
           sr.id,
           sr.sale_id,
-          sr.item_id,
+          sr.frame_variant_id,
+          sr.lens_id,
+          sr.lens_addon_id,
           sr.return_quantity,
           sr.total_refund_amount,
           sr.refunded_amount,
@@ -222,7 +240,7 @@ class SaleReturnRepository {
           sr.date,
           sr.invoice_number,
           sr.reason,
-          i.name as item_name,
+          COALESCE(f.name || ' (' || fv.sku || ')', l.name, la.name) as item_name,
           pa.name as party_name,
           db.name as done_by_name,
           cc.name as cost_center_name,
@@ -233,7 +251,7 @@ class SaleReturnRepository {
 
     const allowedSortColumns = {
       date: "sr.date",
-      item_name: "i.name",
+      item_name: "COALESCE(f.name, l.name, la.name)",
       party_name: "pa.name",
       return_quantity: "sr.return_quantity",
       total_refund_amount: "sr.total_refund_amount",
@@ -257,7 +275,6 @@ class SaleReturnRepository {
     mainQuery += ` LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
     params.push(limit, offset);
 
-    // --- EXECUTE QUERIES ---
     const [mainResult, aggregationResult] = await Promise.all([
       db.query(mainQuery, params),
       db.query(aggregationQuery, aggregationParams),

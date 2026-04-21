@@ -454,14 +454,21 @@ class SalesRepository {
           FROM (
             SELECT 
               si.id, 
-              si.item_id, 
-              i.name as item_name, 
+              si.frame_variant_id,
+              si.lens_id,
+              si.lens_addon_id,
+              COALESCE(f.name || ' (' || fv.sku || ')', l.name, la.name) as item_name, 
               si.quantity, 
-              si.unit_price, 
+              si.frame_price,
+              si.lens_price,
+              si.addon_price,
               si.tax_amount, 
               si.total_price
             FROM sale_item si 
-            JOIN item i ON si.item_id = i.id
+            LEFT JOIN frame_variants fv ON si.frame_variant_id = fv.id
+            LEFT JOIN frame f ON fv.frame_id = f.id
+            LEFT JOIN lenses l ON si.lens_id = l.id
+            LEFT JOIN lens_addons la ON si.lens_addon_id = la.id
             WHERE si.sales_id = s.id
           ) as si_agg
         ) as items,
@@ -526,9 +533,9 @@ class SalesRepository {
       UPDATE sale_item
       SET returned_quantity = returned_quantity + $1
       WHERE sales_id = $2
-        AND item_id = $3
+        AND (frame_variant_id = $3 OR lens_id = $3 OR lens_addon_id = $3)
         AND (quantity - returned_quantity) >= $1; 
-    `
+    `;
     const { rowCount } = await dbClient.query(query, [
       quantityToReturn,
       saleId,
@@ -553,8 +560,8 @@ class SalesRepository {
     const query = `
       UPDATE sale_item
       SET returned_quantity = returned_quantity - $1
-      WHERE sales_id = $2 AND item_id = $3;
-    `
+      WHERE sales_id = $2 AND (frame_variant_id = $3 OR lens_id = $3 OR lens_addon_id = $3);
+    `;
 
     const { rowCount } = await dbClient.query(query, [
       quantityToRestore,

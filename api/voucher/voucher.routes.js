@@ -8,7 +8,9 @@ const VoucherController = require("./voucher.controller");
 const VoucherValidator = require("./voucher.validator");
 const VoucherTransactionsService = require("../voucherTransaction/voucherTransaction.service");
 
-const ItemRepository = require("../item/item.repository");
+const LensesRepository = require("../lenses/lenses.repository");
+const LensAddonsRepository = require("../lensesAddons/lensAddons.repository");
+const FrameVariantRepository = require("../frameVarient/frameVariant.repository");
 const SalesRepository = require("../sales/sales.repository");
 const SalesService = require("../sales/sales.service");
 const PurchaseRepository = require("../purchase/purchase.repository");
@@ -22,7 +24,10 @@ const LedgerService = require("../ledger/ledger.service");
 const ExpenseRepository = require("../expense/expense.repository");
 const ExpenseService = require("../expense/expense.service");
 
-const itemRepository = new ItemRepository();
+const lensesRepository = new LensesRepository();
+const lensAddonsRepository = new LensAddonsRepository();
+const frameVariantRepository = new FrameVariantRepository();
+
 const ledgerService = new LedgerService(new LedgerRepository());
 const expenseService = new ExpenseService(
   new ExpenseRepository(),
@@ -32,17 +37,31 @@ const expenseService = new ExpenseService(
 const voucherService = new VoucherService(
   new VoucherRepository(),
   new VoucherTransactionsService(),
-  new SalesService(new SalesRepository(), itemRepository),
-  new PurchaseService(new PurchaseRepository(), itemRepository),
+  new SalesService(
+    new SalesRepository(),
+    lensesRepository,
+    lensAddonsRepository,
+    frameVariantRepository,
+  ),
+  new PurchaseService(
+    new PurchaseRepository(),
+    lensesRepository,
+    lensAddonsRepository,
+    frameVariantRepository,
+  ),
   new SaleReturnService(
     new SaleReturnRepository(),
     new SalesRepository(),
-    itemRepository,
+    lensesRepository,
+    lensAddonsRepository,
+    frameVariantRepository,
   ),
   new PurchaseReturnService(
     new PurchaseReturnRepository(),
     new PurchaseRepository(),
-    itemRepository,
+    lensesRepository,
+    lensAddonsRepository,
+    frameVariantRepository,
   ),
   ledgerService,
   expenseService,

@@ -1,9 +1,15 @@
-const ItemRepository = require("../item/item.repository");
-
 class SalesService {
-  constructor(repository, itemRepository, voucherService) {
+  constructor(
+    repository,
+    lensesRepository,
+    lensAddonsRepository,
+    frameVariantRepository,
+    voucherService,
+  ) {
     this.repository = repository;
-    this.itemRepository = itemRepository || new ItemRepository();
+    this.lensesRepository = lensesRepository;
+    this.lensAddonsRepository = lensAddonsRepository;
+    this.frameVariantRepository = frameVariantRepository;
     this.voucherService = voucherService;
   }
 
@@ -15,29 +21,67 @@ class SalesService {
     if (!items || items.length === 0) {
       return [];
     }
-    const itemIds = items.map((item) => item.item_id);
-    const dbItems = await this.itemRepository.getByIds(db, itemIds, tenantId);
 
-    if (dbItems.length !== itemIds.length) {
-      const foundItemIds = dbItems.map((item) => item.id);
-      const missingIds = itemIds.filter((id) => !foundItemIds.includes(id));
-      throw new Error(
-        `One or more items not found. Could not find item IDs: ${missingIds.join(
-          ", ",
-        )} for tenant ${tenantId}`,
-      );
+    const processedItems = [];
+
+    for (const item of items) {
+      let dbItem = null;
+      let type = null;
+
+      if (item.frame_variant_id) {
+        dbItem = await this.frameVariantRepository.getById(
+          db,
+          item.frame_variant_id,
+          tenantId,
+        );
+        type = "FRAME";
+      } else if (item.lens_id) {
+        dbItem = await this.lensesRepository.getById(db, item.lens_id, tenantId);
+        type = "LENS";
+      } else if (item.lens_addon_id) {
+        dbItem = await this.lensAddonsRepository.getById(
+          db,
+          item.lens_addon_id,
+          tenantId,
+        );
+        type = "ADDON";
+      }
+
+      if (!dbItem) {
+        throw new Error(
+          `Item not found for the provided ID in tenant ${tenantId}`,
+        );
+      }
+
+      // Check stock only for frames
+      if (type === "FRAME" && dbItem.stock_qty < item.quantity) {
+        throw new Error(
+          `Not enough stock for frame: ${dbItem.frame_name || dbItem.sku}.`,
+        );
+      }
+
+      const basePrice = item.quantity * item.unit_price;
+      // Tax logic might need adjustment if tax isn't on all tables, 
+      // but assuming 0 if missing for now.
+      const taxRate = parseFloat(dbItem.tax || 0);
+      const taxAmount = (basePrice * taxRate) / 100;
+      const totalPrice = basePrice + taxAmount;
+
+      processedItems.push({
+        ...item,
+        tax_amount: taxAmount,
+        total_price: totalPrice,
+      });
     }
 
-    return items.map((item) => {
-      const dbItem = dbItems.find((i) => i.id === item.item_id);
-      if (dbItem.stock_quantity < item.quantity) {
-        throw new Error(`Not enough stock for item: ${dbItem.name}.`);
-      }
-      const basePrice = item.quantity * item.unit_price;
-      const taxAmount = (basePrice * (parseFloat(dbItem.tax) || 0)) / 100;
-      const totalPrice = basePrice + taxAmount;
-      return { ...item, tax_amount: taxAmount, total_price: totalPrice };
-    });
+    return processedItems;
+  }
+
+  _getItemUniqueKey(item) {
+    if (item.frame_variant_id) return `frame_${item.frame_variant_id}`;
+    if (item.lens_id) return `lens_${item.lens_id}`;
+    if (item.lens_addon_id) return `addon_${item.lens_addon_id}`;
+    return "unknown";
   }
 
   _deduplicateAndCleanItems(items) {
@@ -46,10 +90,11 @@ class SalesService {
       const quantity = parseFloat(item.quantity) || 0;
       if (quantity <= 0) return;
 
-      if (uniqueItemsMap.has(item.item_id)) {
-        uniqueItemsMap.get(item.item_id).quantity += quantity;
+      const key = this._getItemUniqueKey(item);
+      if (uniqueItemsMap.has(key)) {
+        uniqueItemsMap.get(key).quantity += quantity;
       } else {
-        uniqueItemsMap.set(item.item_id, { ...item, quantity });
+        uniqueItemsMap.set(key, { ...item, quantity });
       }
     });
     return Array.from(uniqueItemsMap.values());
@@ -67,10 +112,7 @@ class SalesService {
       ...saleDetails
     } = saleData;
 
-    // 1. Deduplicate and clean input items
     const uniqueInputItems = this._deduplicateAndCleanItems(items);
-
-    // 2. Process unique items
     const itemsWithDetails = await this._processSaleItems(
       uniqueInputItems,
       tenantId,
@@ -83,7 +125,6 @@ class SalesService {
     );
     const grandTotal = itemsSubtotal - parseFloat(discount);
 
-    // Filter valid payments (for vouchers)
     const validPayments = payment_methods
       .map((p) => ({
         account_id: p.account_id,
@@ -92,7 +133,6 @@ class SalesService {
       }))
       .filter((p) => p.amount !== 0 && p.account_id);
 
-    // Note: paid_amount is initially 0, updated by VoucherService later
     const salePayload = {
       ...saleDetails,
       tenant_id: tenantId,
@@ -104,19 +144,23 @@ class SalesService {
       note,
     };
 
-    // 3. Create Sale (Unpaid)
     const newSales = await this.repository.create(
       db,
       salePayload,
       itemsWithDetails,
     );
 
-    // 4. Update Stock
+    // Update Stock for Frames
     for (const item of itemsWithDetails) {
-      await this.itemRepository.updateStock(db, item.item_id, -item.quantity);
+      if (item.frame_variant_id) {
+        await this.frameVariantRepository.updateStock(
+          db,
+          item.frame_variant_id,
+          -item.quantity,
+        );
+      }
     }
 
-    // 5. Create Vouchers for Payments
     if (newSales && validPayments.length > 0) {
       await this._processVouchersForPayments(newSales, user, validPayments, db);
     }
@@ -130,8 +174,6 @@ class SalesService {
 
   async update(id, user, saleData, db) {
     const tenantId = user.tenant_id;
-
-    // 1. Fetch Original Sale (includes existing vouchers/payments)
     const originalSale = await this.repository.getById(db, id, tenantId);
     if (!originalSale) {
       throw new Error("Sale not found or not authorized to update");
@@ -148,7 +190,6 @@ class SalesService {
     } = saleData;
 
     const uniqueInputItems = this._deduplicateAndCleanItems(updatedItems);
-
     const itemsWithDetails = await this._processSaleItems(
       uniqueInputItems,
       tenantId,
@@ -161,28 +202,20 @@ class SalesService {
     );
     const grandTotal = itemsSubtotal - parseFloat(discount);
 
-    // 2. Handle Payment Methods (Sync Vouchers)
-    // Filter and map valid payments
     const validIncomingPayments = payment_methods
       .map((p) => ({
         account_id: p.account_id,
         amount: parseFloat(p.amount) || 0,
         mode_of_payment_id: p.mode_of_payment_id,
-        voucher_id: p.voucher_id, // Ensure ID is passed if it exists
+        voucher_id: p.voucher_id,
       }))
       .filter((p) => p.amount !== 0 && p.account_id);
 
-    // Collect IDs of incoming vouchers to identify which existing ones should be kept
     const incomingVoucherIds = new Set(
-      validIncomingPayments.map((p) => p.voucher_id).filter((id) => id != null),
+      validIncomingPayments.map((p) => p.voucher_id).filter((vid) => vid != null),
     );
 
-    // Get existing vouchers from the DB record
     const existingVouchers = originalSale.payment_methods || [];
-
-    // Delete existing vouchers that are NOT in the incoming payload
-    // This solves the issue where editing a payment (without passing ID) or removing it
-    // resulted in duplicate payments or incorrect totals.
     for (const existingVoucher of existingVouchers) {
       if (
         existingVoucher.voucher_id &&
@@ -201,31 +234,23 @@ class SalesService {
       note,
     };
 
-    // Calculate Stock Differences
-    const originalItemQuantities = new Map(
-      (originalSale.items || []).map((item) => [item.item_id, item.quantity]),
-    );
-    const updatedItemQuantities = new Map(
-      (itemsWithDetails || []).map((item) => [item.item_id, item.quantity]),
-    );
-
+    // Calculate Stock Differences for Frames
     const stockAdjustments = new Map();
-    const allItemIds = new Set([
-      ...originalItemQuantities.keys(),
-      ...updatedItemQuantities.keys(),
-    ]);
+    
+    (originalSale.items || []).forEach(item => {
+        if (item.frame_variant_id) {
+            const key = item.frame_variant_id;
+            stockAdjustments.set(key, (stockAdjustments.get(key) || 0) + item.quantity);
+        }
+    });
 
-    for (const itemId of allItemIds) {
-      const originalQty = originalItemQuantities.get(itemId) || 0;
-      const updatedQty = updatedItemQuantities.get(itemId) || 0;
-      const difference = originalQty - updatedQty; // + means return to stock (orig > updated), - means take from stock
+    (itemsWithDetails || []).forEach(item => {
+        if (item.frame_variant_id) {
+            const key = item.frame_variant_id;
+            stockAdjustments.set(key, (stockAdjustments.get(key) || 0) - item.quantity);
+        }
+    });
 
-      if (difference !== 0) {
-        stockAdjustments.set(itemId, difference);
-      }
-    }
-
-    // 3. Update Sale Details
     const updatedSales = await this.repository.update(
       db,
       id,
@@ -238,12 +263,12 @@ class SalesService {
       throw new Error("Failed to update the sale.");
     }
 
-    // 4. Adjust Stock
-    for (const [itemId, quantityChange] of stockAdjustments.entries()) {
-      await this.itemRepository.updateStock(db, itemId, quantityChange);
+    for (const [frameVariantId, quantityChange] of stockAdjustments.entries()) {
+      if (quantityChange !== 0) {
+        await this.frameVariantRepository.updateStock(db, frameVariantId, quantityChange);
+      }
     }
 
-    // 5. Process Create/Update for incoming payments
     if (updatedSales && validIncomingPayments.length > 0) {
       await this._processVouchersForPayments(
         updatedSales,
@@ -260,7 +285,6 @@ class SalesService {
     };
   }
 
-  // Renamed from _createVouchersForPayments to reflect dual purpose (create & update)
   async _processVouchersForPayments(sale, user, payment_methods, db) {
     if (!sale.party_ledger_id) {
       throw new Error(
@@ -280,7 +304,6 @@ class SalesService {
         amount: absAmount,
         date: sale.date,
         description: `Payment for Sale Invoice #${sale.invoice_number}`,
-        // Keep existing number if updating, otherwise generate new one
         voucher_no:
           payment.voucher_no ||
           `VS-${sale.invoice_number}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
@@ -308,7 +331,6 @@ class SalesService {
       };
 
       if (payment.voucher_id) {
-        // UPDATE existing voucher
         await this.voucherService.update(
           payment.voucher_id,
           user,
@@ -316,7 +338,6 @@ class SalesService {
           db,
         );
       } else {
-        // CREATE new voucher
         await this.voucherService.create(user, voucherData, db);
       }
     }
@@ -359,7 +380,6 @@ class SalesService {
   async getById(id, tenantId, db) {
     const sales = await this.repository.getById(db, id, tenantId);
     if (!sales) throw new Error("Sales not found or not authorized");
-    // Fix //uploads/... from legacy data so images load (browsers treat // as protocol-relative)
     if (sales.store) {
       if (sales.store.header_image_url)
         sales.store.header_image_url = this._normalizeImageUrl(
@@ -373,7 +393,6 @@ class SalesService {
     return sales;
   }
 
-  // sales.service.js
   async delete(id, user, db) {
     const tenantId = user.tenant_id;
     const saleToDelete = await this.repository.getById(db, id, tenantId);
@@ -383,10 +402,8 @@ class SalesService {
     try {
       await client.query("BEGIN");
 
-      // Pass the 'client' down so VoucherService uses the same transaction
       if (saleToDelete.payment_methods) {
         for (const payment of saleToDelete.payment_methods) {
-          // Pass 'client' as the 4th argument
           await this.voucherService.delete(
             payment.voucher_id,
             user,
@@ -399,11 +416,13 @@ class SalesService {
       await this.repository.delete(client, id, tenantId);
 
       for (const item of saleToDelete.items) {
-        await this.itemRepository.updateStock(
-          client,
-          item.item_id,
-          item.quantity,
-        );
+        if (item.frame_variant_id) {
+          await this.frameVariantRepository.updateStock(
+            client,
+            item.frame_variant_id,
+            item.quantity,
+          );
+        }
       }
 
       await client.query("COMMIT");

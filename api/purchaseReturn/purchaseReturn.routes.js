@@ -6,7 +6,9 @@ const validateToken = require('../../../middlewares/validateToken');
 
 const PurchaseReturnRepository = require('./purchaseReturn.repository');
 const PurchaseRepository = require('../purchase/purchase.repository');
-const ItemRepository = require('../item/item.repository');
+const LensesRepository = require("../lenses/lenses.repository");
+const LensAddonsRepository = require("../lensesAddons/lensAddons.repository");
+const FrameVariantRepository = require("../frameVarient/frameVariant.repository");
 const VoucherRepository = require('../voucher/voucher.repository');
 const LedgerRepository = require('../ledger/ledger.repository');
 
@@ -20,7 +22,10 @@ const PurchaseReturnValidator = require('./purchaseReturn.validator');
 
 const purchaseReturnRepository = new PurchaseReturnRepository();
 const purchaseRepository = new PurchaseRepository();
-const itemRepository = new ItemRepository();
+const lensesRepository = new LensesRepository();
+const lensAddonsRepository = new LensAddonsRepository();
+const frameVariantRepository = new FrameVariantRepository();
+
 const voucherRepository = new VoucherRepository();
 const vtService = new VoucherTransactionsService();
 const ledgerRepository = new LedgerRepository();
@@ -39,7 +44,9 @@ const voucherService = new VoucherService(
 const purchaseReturnService = new PurchaseReturnService(
     purchaseReturnRepository, 
     purchaseRepository, 
-    itemRepository,
+    lensesRepository,
+    lensAddonsRepository,
+    frameVariantRepository,
     voucherService
 );
 

@@ -1,5 +1,3 @@
-// --- START OF FILE purchaseReturn.repository.js ---
-
 class PurchaseReturnRepository {
   constructor() {}
 
@@ -7,7 +5,9 @@ class PurchaseReturnRepository {
     const {
       tenant_id,
       purchase_id,
-      item_id,
+      frame_variant_id,
+      lens_id,
+      lens_addon_id,
       return_quantity,
       date,
       reason,
@@ -19,16 +19,18 @@ class PurchaseReturnRepository {
 
     const { rows } = await db.query(
       `INSERT INTO purchase_return (
-        tenant_id, purchase_id, item_id, return_quantity, date,
-        reason, total_refund_amount, refunded_amount, status,
-        done_by_id, cost_center_id, invoice_number
+        tenant_id, purchase_id, frame_variant_id, lens_id, lens_addon_id,
+        return_quantity, date, reason, total_refund_amount, refunded_amount,
+        status, done_by_id, cost_center_id, invoice_number
       )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 'pending', $8, $9, $10)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0, 'pending', $10, $11, $12)
        RETURNING *`,
       [
         tenant_id,
         purchase_id,
-        item_id,
+        frame_variant_id || null,
+        lens_id || null,
+        lens_addon_id || null,
         return_quantity,
         date || new Date(),
         reason,
@@ -77,8 +79,8 @@ class PurchaseReturnRepository {
     const query = `
       SELECT
         pr.*,
-        i.name as item_name,
-        i.sku as item_sku,
+        COALESCE(f.name || ' (' || fv.sku || ')', l.name, la.name) as item_name,
+        COALESCE(fv.sku, l.sku, la.sku) as item_sku,
         pa.name as party_name,
         pa.ledger_id as party_ledger_id,
         db.name as done_by_name,
@@ -88,7 +90,7 @@ class PurchaseReturnRepository {
           SELECT json_agg(v_agg)
           FROM (
             SELECT
-              v.to_ledger_id as account_id, -- For PR, money goes TO the store account
+              v.to_ledger_id as account_id,
               l.name as account_name,
               vt.received_amount as amount,
               v.mode_of_payment_id,
@@ -103,7 +105,10 @@ class PurchaseReturnRepository {
           ) as v_agg
         ) as payment_methods
       FROM purchase_return pr
-      LEFT JOIN item i ON pr.item_id = i.id
+      LEFT JOIN frame_variants fv ON pr.frame_variant_id = fv.id
+      LEFT JOIN frame f ON fv.frame_id = f.id
+      LEFT JOIN lenses l ON pr.lens_id = l.id
+      LEFT JOIN lens_addons la ON pr.lens_addon_id = la.id
       LEFT JOIN purchase p ON pr.purchase_id = p.id
       LEFT JOIN party pa ON p.party_id = pa.id
       LEFT JOIN "done_by" db ON pr.done_by_id = db.id
@@ -123,15 +128,18 @@ class PurchaseReturnRepository {
   }
 
   async getAllByUserId(db, tenantId, filters = {}) {
-    const { sort, party_id, payment_due_only, ids } = filters;
+    const { party_id, payment_due_only, ids } = filters;
     let query = `
       SELECT
         pr.*,
-        i.name as item_name,
+        COALESCE(f.name || ' (' || fv.sku || ')', l.name, la.name) as item_name,
         pa.name as party_name,
         (pr.total_refund_amount - pr.refunded_amount) as balance
       FROM purchase_return pr
-      LEFT JOIN item i ON pr.item_id = i.id
+      LEFT JOIN frame_variants fv ON pr.frame_variant_id = fv.id
+      LEFT JOIN frame f ON fv.frame_id = f.id
+      LEFT JOIN lenses l ON pr.lens_id = l.id
+      LEFT JOIN lens_addons la ON pr.lens_addon_id = la.id
       LEFT JOIN purchase p ON pr.purchase_id = p.id
       LEFT JOIN party pa ON p.party_id = pa.id
       WHERE pr.tenant_id = $1
@@ -155,14 +163,17 @@ class PurchaseReturnRepository {
   async getPaginatedUserId(db, tenantId, filters = {}) {
     const {
       page = 1, page_size = 10, sort, searchType, searchKey, start_date, end_date,
-      item_id, party_id, done_by_id, cost_center_id, status
+      frame_variant_id, lens_id, lens_addon_id, party_id, done_by_id, cost_center_id, status
     } = filters;
     const limit = parseInt(page_size, 10);
     const offset = (parseInt(page, 10) - 1) * limit;
 
     const fromAndJoins = `
       FROM purchase_return pr
-      LEFT JOIN item i ON pr.item_id = i.id
+      LEFT JOIN frame_variants fv ON pr.frame_variant_id = fv.id
+      LEFT JOIN frame f ON fv.frame_id = f.id
+      LEFT JOIN lenses l ON pr.lens_id = l.id
+      LEFT JOIN lens_addons la ON pr.lens_addon_id = la.id
       LEFT JOIN purchase p ON pr.purchase_id = p.id
       LEFT JOIN party pa ON p.party_id = pa.id
       LEFT JOIN "done_by" db ON pr.done_by_id = db.id
@@ -175,7 +186,7 @@ class PurchaseReturnRepository {
 
     if (searchKey && searchType) {
         const searchConfig = {
-            item_name: "i.name",
+            item_name: "COALESCE(f.name, l.name, la.name)",
             party_name: "pa.name",
             purchase_id: "pr.purchase_id::text",
             reason: "pr.reason",
@@ -189,7 +200,9 @@ class PurchaseReturnRepository {
     }
     if (start_date) { whereClause += ` AND pr.date >= $${paramIndex++}`; params.push(start_date); }
     if (end_date) { whereClause += ` AND pr.date <= $${paramIndex++}`; params.push(end_date); }
-    if (item_id) { whereClause += ` AND pr.item_id = $${paramIndex++}`; params.push(item_id); }
+    if (frame_variant_id) { whereClause += ` AND pr.frame_variant_id = $${paramIndex++}`; params.push(frame_variant_id); }
+    if (lens_id) { whereClause += ` AND pr.lens_id = $${paramIndex++}`; params.push(lens_id); }
+    if (lens_addon_id) { whereClause += ` AND pr.lens_addon_id = $${paramIndex++}`; params.push(lens_addon_id); }
     if (party_id) { whereClause += ` AND p.party_id = $${paramIndex++}`; params.push(party_id); }
     if (done_by_id) { whereClause += ` AND pr.done_by_id = $${paramIndex++}`; params.push(done_by_id); }
     if (cost_center_id) { whereClause += ` AND pr.cost_center_id = $${paramIndex++}`; params.push(cost_center_id); }
@@ -206,7 +219,7 @@ class PurchaseReturnRepository {
 
     let mainQuery = `
       SELECT
-        pr.*, i.name as item_name, pa.name as party_name,
+        pr.*, COALESCE(f.name || ' (' || fv.sku || ')', l.name, la.name) as item_name, pa.name as party_name,
         db.name as done_by_name, cc.name as cost_center_name,
         COUNT(*) OVER() as total_count,
         (pr.total_refund_amount - pr.refunded_amount) as balance
@@ -217,7 +230,7 @@ class PurchaseReturnRepository {
     const allowedSortColumns = {
         date: "pr.date",
         party_name: "pa.name",
-        item_name: "i.name",
+        item_name: "COALESCE(f.name, l.name, la.name)",
         done_by: "db.name",
         cost_center: "cc.name",
         return_quantity: "pr.return_quantity",
@@ -234,7 +247,6 @@ class PurchaseReturnRepository {
     } else {
         mainQuery += " ORDER BY pr.date DESC, pr.id DESC";
     }
-
 
     mainQuery += ` LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
     params.push(limit, offset);

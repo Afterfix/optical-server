@@ -1,15 +1,17 @@
-// --- START OF FILE purchaseReturn.service.js ---
-
 class PurchaseReturnService {
   constructor(
     purchaseReturnRepository,
     purchaseRepository,
-    itemRepository,
+    lensesRepository,
+    lensAddonsRepository,
+    frameVariantRepository,
     voucherService,
   ) {
     this.repository = purchaseReturnRepository;
     this.purchaseRepository = purchaseRepository;
-    this.itemRepository = itemRepository;
+    this.lensesRepository = lensesRepository;
+    this.lensAddonsRepository = lensAddonsRepository;
+    this.frameVariantRepository = frameVariantRepository;
     this.voucherService = voucherService;
   }
 
@@ -30,16 +32,20 @@ class PurchaseReturnService {
           `Supplier '${originalPurchase.party_name}' has no linked Ledger.`,
         );
 
-      const itemDetails = await this.itemRepository.getById(
-        client,
-        returnDetails.item_id,
-        user.tenant_id,
-      );
-      if (!itemDetails) {
-        throw new Error(`Item with ID ${returnDetails.item_id} not found.`);
+      let itemDetails = null;
+      if (returnDetails.frame_variant_id) {
+          itemDetails = await this.frameVariantRepository.getById(client, returnDetails.frame_variant_id, user.tenant_id);
+      } else if (returnDetails.lens_id) {
+          itemDetails = await this.lensesRepository.getById(client, returnDetails.lens_id, user.tenant_id);
+      } else if (returnDetails.lens_addon_id) {
+          itemDetails = await this.lensAddonsRepository.getById(client, returnDetails.lens_addon_id, user.tenant_id);
       }
 
-      const taxRate = parseFloat(itemDetails.tax) || 0;
+      if (!itemDetails) {
+        throw new Error(`Item not found.`);
+      }
+
+      const taxRate = parseFloat(itemDetails.tax || 0);
       const baseAmount =
         parseFloat(returnDetails.return_quantity) * parseFloat(unit_price);
       const taxAmount = baseAmount * (taxRate / 100);
@@ -51,10 +57,12 @@ class PurchaseReturnService {
         total_refund_amount: totalValueToRefund,
       };
 
+      const itemId = returnDetails.frame_variant_id || returnDetails.lens_id || returnDetails.lens_addon_id;
+
       await this.purchaseRepository.decreaseItemQuantity(
         client,
         returnData.purchase_id,
-        returnData.item_id,
+        itemId,
         returnData.return_quantity,
       );
 
@@ -63,11 +71,13 @@ class PurchaseReturnService {
         returnData,
       );
 
-      await this.itemRepository.updateStock(
-        client,
-        newPurchaseReturn.item_id,
-        -newPurchaseReturn.return_quantity,
-      );
+      if (newPurchaseReturn.frame_variant_id) {
+        await this.frameVariantRepository.updateStock(
+          client,
+          newPurchaseReturn.frame_variant_id,
+          -newPurchaseReturn.return_quantity,
+        );
+      }
 
       await client.query("COMMIT");
 
@@ -151,16 +161,22 @@ class PurchaseReturnService {
       );
       if (!existingReturn) throw new Error("Purchase return not found");
 
-      const itemDetails = await this.itemRepository.getById(
-        client,
-        existingReturn.item_id,
-        user.tenant_id,
-      );
-      if (!itemDetails) {
-        throw new Error(`Item with ID ${existingReturn.item_id} not found.`);
+      let itemDetails = null;
+      const itemId = existingReturn.frame_variant_id || existingReturn.lens_id || existingReturn.lens_addon_id;
+      
+      if (existingReturn.frame_variant_id) {
+          itemDetails = await this.frameVariantRepository.getById(client, existingReturn.frame_variant_id, user.tenant_id);
+      } else if (existingReturn.lens_id) {
+          itemDetails = await this.lensesRepository.getById(client, existingReturn.lens_id, user.tenant_id);
+      } else if (existingReturn.lens_addon_id) {
+          itemDetails = await this.lensAddonsRepository.getById(client, existingReturn.lens_addon_id, user.tenant_id);
       }
 
-      const taxRate = parseFloat(itemDetails.tax) || 0;
+      if (!itemDetails) {
+        throw new Error(`Item not found.`);
+      }
+
+      const taxRate = parseFloat(itemDetails.tax || 0);
       const baseAmount =
         parseFloat(returnData.return_quantity) * parseFloat(unit_price);
       const taxAmount = baseAmount * (taxRate / 100);
@@ -169,15 +185,17 @@ class PurchaseReturnService {
       const quantityDifference =
         existingReturn.return_quantity - returnData.return_quantity;
       if (quantityDifference !== 0) {
-        await this.itemRepository.updateStock(
-          client,
-          existingReturn.item_id,
-          quantityDifference,
-        );
+          if (existingReturn.frame_variant_id) {
+              await this.frameVariantRepository.updateStock(
+                  client,
+                  existingReturn.frame_variant_id,
+                  quantityDifference,
+                );
+          }
         await this.purchaseRepository.increaseItemQuantity(
           client,
           existingReturn.purchase_id,
-          existingReturn.item_id,
+          itemId,
           quantityDifference,
         );
       }
@@ -228,15 +246,19 @@ class PurchaseReturnService {
       );
       if (!returnToDelete) throw new Error("Purchase return not found.");
 
-      await this.itemRepository.updateStock(
-        client,
-        returnToDelete.item_id,
-        returnToDelete.return_quantity,
-      );
+      const itemId = returnToDelete.frame_variant_id || returnToDelete.lens_id || returnToDelete.lens_addon_id;
+
+      if (returnToDelete.frame_variant_id) {
+          await this.frameVariantRepository.updateStock(
+              client,
+              returnToDelete.frame_variant_id,
+              returnToDelete.return_quantity,
+            );
+      }
       await this.purchaseRepository.increaseItemQuantity(
         client,
         returnToDelete.purchase_id,
-        returnToDelete.item_id,
+        itemId,
         returnToDelete.return_quantity,
       );
 

@@ -8,7 +8,9 @@ const SalesService = require("./sales.service");
 const SalesController = require("./sales.controller");
 const SalesValidator = require("./sales.validator");
 
-const ItemRepository = require("../item/item.repository");
+const LensesRepository = require("../lenses/lenses.repository");
+const LensAddonsRepository = require("../lensesAddons/lensAddons.repository");
+const FrameVariantRepository = require("../frameVarient/frameVariant.repository");
 
 // --- Dependency Injection for Voucher Service ---
 const VoucherRepository = require('../voucher/voucher.repository');
@@ -25,7 +27,10 @@ const LedgerService = require('../ledger/ledger.service');
 
 // Initialize Repositories
 const salesRepository = new SalesRepository(db);
-const itemRepository = new ItemRepository(db);
+const lensesRepository = new LensesRepository();
+const lensAddonsRepository = new LensAddonsRepository();
+const frameVariantRepository = new FrameVariantRepository();
+
 const purchaseRepository = new PurchaseRepository();
 const saleReturnRepository = new SaleReturnRepository();
 const purchaseReturnRepository = new PurchaseReturnRepository();
@@ -35,18 +40,44 @@ const voucherTransactionsService = new VoucherTransactionsService();
 
 // Initialize Services
 // Partially initialize SalesService (without voucherService yet) to pass to VoucherService
-const salesService = new SalesService(salesRepository, itemRepository, null); 
+const salesService = new SalesService(
+  salesRepository,
+  lensesRepository,
+  lensAddonsRepository,
+  frameVariantRepository,
+  null
+); 
 
-const purchaseService = new PurchaseService(purchaseRepository, itemRepository, null);
-const saleReturnService = new SaleReturnService(saleReturnRepository, salesRepository, itemRepository);
-const purchaseReturnService = new PurchaseReturnService(purchaseReturnRepository, purchaseRepository, itemRepository);
+const purchaseService = new PurchaseService(
+  purchaseRepository,
+  lensesRepository,
+  lensAddonsRepository,
+  frameVariantRepository,
+  null
+);
+const saleReturnService = new SaleReturnService(
+  saleReturnRepository,
+  salesRepository,
+  lensesRepository,
+  lensAddonsRepository,
+  frameVariantRepository,
+  null
+);
+const purchaseReturnService = new PurchaseReturnService(
+  purchaseReturnRepository,
+  purchaseRepository,
+  lensesRepository,
+  lensAddonsRepository,
+  frameVariantRepository,
+  null
+);
 const ledgerService = new LedgerService(ledgerRepository);
 
-// Initialize VoucherService with the salesService instance
+// Initialize VoucherService
 const voucherService = new VoucherService(
     voucherRepository,
     voucherTransactionsService,
-    salesService, // Passed here
+    salesService,
     purchaseService,
     saleReturnService,
     purchaseReturnService,
@@ -55,6 +86,9 @@ const voucherService = new VoucherService(
 
 // Now set the voucherService into the salesService
 salesService.voucherService = voucherService;
+purchaseService.voucherService = voucherService;
+saleReturnService.voucherService = voucherService;
+purchaseReturnService.voucherService = voucherService;
 
 const salesController = new SalesController(salesService);
 const salesValidator = new SalesValidator();

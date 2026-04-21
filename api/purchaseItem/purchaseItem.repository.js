@@ -2,10 +2,10 @@ class PurchaseItemRepository {
   async createMany(client, purchaseId, items, tenantId) {
     const query = `
       INSERT INTO purchase_item (
-        tenant_id, purchase_id, frame_variant_id, 
+        tenant_id, purchase_id, frame_variant_id, lens_id, lens_addon_id,
         quantity, unit_price, total_price, tax_amount
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     `;
 
     for (const item of items) {
@@ -19,6 +19,7 @@ class PurchaseItemRepository {
         purchaseId,
         item.frame_variant_id || null,
         item.lens_id || null,
+        item.lens_addon_id || null,
         item.quantity,
         unitPrice,
         total,

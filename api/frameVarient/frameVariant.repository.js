@@ -170,6 +170,20 @@ class FrameVariantRepository {
     return rows[0];
   }
 
+  async updateStock(client, id, quantityChange) {
+    const query = `
+      UPDATE frame_variants 
+      SET stock_qty = stock_qty + $1 
+      WHERE id = $2 
+      RETURNING *;
+    `;
+    const { rows } = await client.query(query, [quantityChange, id]);
+    if (rows.length === 0) {
+      throw new Error(`Frame variant with ID ${id} not found.`);
+    }
+    return rows[0];
+  }
+
   async delete(db, id, tenantId = null) {
     let query = "DELETE FROM frame_variants WHERE id = $1";
     const params = [id];
