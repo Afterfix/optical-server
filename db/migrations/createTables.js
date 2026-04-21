@@ -40,7 +40,7 @@ const createReportFieldPermissionsTable = require("../../api/reportFieldPermissi
 const createTrasactionLedgerTable = require("../../api/transactionLedger/transactionLedger.table.js");
 const createTransactionFieldPermissionsTable = require("../../api/transactionFieldPermissions/transactionFieldPermissions.table.js");
 const createTransactionTable = require("../../api/transaction/transaction.table.js");
-
+const createVoucherTransactionTable = require("../../api/voucherTransaction/voucherTransaction.table.js");  
 const createQueryTable = require("./tables/query.table.js");
 
 const createTables = async () => {
@@ -85,6 +85,7 @@ const createTables = async () => {
     await createAccountTable(client);
     await createModeOfPaymentTable(client);
     await createVoucherTable(client);
+    await createVoucherTransactionTable(client);
     await createPayrollTable(client);
 
     // // Business entities
@@ -95,6 +96,7 @@ const createTables = async () => {
     await createReportFieldPermissionsTable(client);
     await createTransactionFieldPermissionsTable(client);
     await createExpenseTable(client);
+    
     // // Inventory
 
     // // Transactions
@@ -103,7 +105,7 @@ const createTables = async () => {
     // await createPurchaseReturnTable(client);
 
     await createSalesTable(client);
-    // await createSaleItemTable(client);
+    await createSaleItemTable(client);
     // await createSaleReturnTable(client);
 
     console.log("✅ All tables created successfully in the correct order.");
