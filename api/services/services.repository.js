@@ -18,7 +18,7 @@ class ServicesRepository {
     const filterConfig = {
       status: { operator: "=", column: "s.status" },
       customer_id: { operator: "=", column: "s.customer_id" },
-      customer_name: { operator: "ILIKE", column: "c.name" },
+      customer_name: { operator: "ILIKE", column: "p.name" },
       description: { operator: "ILIKE", column: "s.description" },
     };
 
@@ -49,7 +49,7 @@ class ServicesRepository {
       created_at: "s.created_at",
       cost: "s.cost",
       delivery_date: "s.delivery_date",
-      customer_name: "c.name",
+      customer_name: "p.name",
       status: "s.status",
     };
 
@@ -68,9 +68,9 @@ class ServicesRepository {
   async getAllByTenantId(tenantId, filters = {}) {
     const { whereClause, sortClause, params } = this._buildQueryParts(tenantId, filters);
     const query = `
-      SELECT s.*, c.name as customer_name, c.contact_no as customer_phone
+      SELECT s.*, p.name as customer_name, p.phone as customer_phone
       FROM services s
-      LEFT JOIN customer c ON s.customer_id = c.id
+      LEFT JOIN party p ON s.customer_id = p.id
       ${whereClause} 
       ${sortClause}
     `;
@@ -86,9 +86,9 @@ class ServicesRepository {
     const { whereClause, sortClause, params, paramIndex } = this._buildQueryParts(tenantId, filters);
 
     let query = `
-      SELECT s.*, c.name as customer_name, COUNT(*) OVER() as total_count 
+      SELECT s.*, p.name as customer_name, COUNT(*) OVER() as total_count 
       FROM services s
-      LEFT JOIN customer c ON s.customer_id = c.id
+      LEFT JOIN party p ON s.customer_id = p.id
       ${whereClause} 
       ${sortClause} 
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -120,9 +120,9 @@ class ServicesRepository {
     const actualTenantId = typeof dbOrClient === 'number' || typeof dbOrClient === 'string' ? id : tenantId;
 
     let queryText = `
-      SELECT s.*, c.name as customer_name, c.contact_no as customer_phone
+      SELECT s.*, p.name as customer_name, p.phone as customer_phone
       FROM services s
-      LEFT JOIN customer c ON s.customer_id = c.id
+      LEFT JOIN party p ON s.customer_id = p.id
       WHERE s.id = $1
     `;
     const params = [targetId];
