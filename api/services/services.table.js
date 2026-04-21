@@ -13,7 +13,7 @@ module.exports = async (client) => {
         CREATE TABLE services (
           id SERIAL PRIMARY KEY,
           tenant_id INTEGER REFERENCES "tenant"(id) ON DELETE CASCADE,
-          customer_id INTEGER REFERENCES customer(id) ON DELETE CASCADE,
+          customer_id INTEGER REFERENCES party(id) ON DELETE CASCADE,
           
           description TEXT,
           status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'completed')),
