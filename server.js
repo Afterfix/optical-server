@@ -33,6 +33,7 @@ const ledgerRoutes = require("./api/ledger/ledger.routes");
 const voucherRoutes = require("./api/voucher/voucher.routes");
 const modeofpaymentRoutes = require("./api/modeOfPayment/modeOfPayment.routes");
 const invoiceNumberRoutes = require("./api/invoiceNumber/invoiceNumber.routes");
+const reportFieldPermissionsRoutes = require("./api/reportFieldPermissions/reportFieldPermissions.routes");
 
 const db = require("./config/db");
 
@@ -78,6 +79,8 @@ app.use("/api/ledgers", ledgerRoutes);
 app.use("/api/vouchers", voucherRoutes);
 app.use("/api/mode-of-payment", modeofpaymentRoutes);
 app.use("/api/invoice-number", invoiceNumberRoutes);
+app.use("api/report-field-permissions", reportFieldPermissionsRoutes);
+
 
 
 app.use((err, req, res, next) => {

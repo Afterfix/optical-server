@@ -37,6 +37,7 @@ const createPartnerTable = require("../../api/partner/partner.table.js");
 const createPartyTable = require("../../api/party/party.table.js");
 const createLedgerTable = require("../../api/ledger/ledger.table.js");
 const createVoucherTable = require("../../api/voucher/voucher.table.js");
+const createReportFieldPermissionsTable = require("../../api/reportFieldPermissions/reportFieldPermissions.table.js");
 
 
 const createTables = async () => {
@@ -82,6 +83,7 @@ const createTables = async () => {
 
     // // Expense
     await createExpenseTypeTable(client);
+    await createReportFieldPermissionsTable(client);
     await createExpenseTable(client);
     // // Inventory
     // await createItemTable(client);
