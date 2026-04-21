@@ -9,8 +9,8 @@ class SalesRepository {
   async getByUserId(db, tenantId, filters = {}) {
     const { sort, searchType, searchKey, ids, ...otherFilters } = filters 
     
-    // Status column
-    const statusColumn = 's.status';
+    // payment_status column
+    const paymentStatusColumn = 's.payment_status';
 
     let query = `
             SELECT 
@@ -45,7 +45,7 @@ class SalesRepository {
     let paramIndex = 2
 
     const filterConfig = {
-      status: { operator: '=', column: 's.status' },
+      payment_status: { operator: '=', column: 's.payment_status' },
       party_id: { operator: '=', column: 's.party_id' },
       done_by_id: { operator: '=', column: 's.done_by_id' },
       cost_center_id: { operator: '=', column: 's.cost_center_id' },
@@ -53,8 +53,8 @@ class SalesRepository {
       max_total_amount: { operator: '<=', column: 's.total_amount' },
       min_paid_amount: { operator: '>=', column: 's.paid_amount' },
       max_paid_amount: { operator: '<=', column: 's.paid_amount' },
-      start_date: { operator: '>=', column: 's.date' },
-      end_date: { operator: '<=', column: 's.date' },
+      start_date: { operator: '>=', column: 's.order_date' },
+      end_date: { operator: '<=', column: 's.order_date' },
       party_name: { operator: 'ILIKE', column: 'p.name', isString: true },
       total_amount: { operator: '=', column: 's.total_amount' },
       paid_amount: { operator: '=', column: 's.paid_amount' },
@@ -78,9 +78,9 @@ class SalesRepository {
             AND v.to_ledger_id = $${paramIndex++}
           )`
           params.push(otherFilters[key])
-        } else if (key === 'status' && typeof otherFilters[key] === 'string' && otherFilters[key].includes(',')) {
+        } else if (key === 'payment_status' && typeof otherFilters[key] === 'string' && otherFilters[key].includes(',')) {
           const statuses = otherFilters[key].split(',').map(s => s.trim());
-          query += ` AND s.status = ANY($${paramIndex++})` 
+          query += ` AND s.payment_status = ANY($${paramIndex++})` 
           params.push(statuses)
         } else {
           const { operator, column, isString } = filterConfig[key]
@@ -111,7 +111,7 @@ class SalesRepository {
 
     const searchConfig = {
       party_name: { operator: 'ILIKE', column: 'p.name' },
-      status: { operator: 'ILIKE', column: 's.status' },
+      payment_status: { operator: 'ILIKE', column: 's.payment_status' },
       total_amount: { operator: '=', column: 's.total_amount' },
       invoice_number: { operator: 'ILIKE', column: 's.invoice_number' },
       done_by_name: { operator: 'ILIKE', column: 'db.name' },
@@ -129,10 +129,10 @@ class SalesRepository {
     }
 
     const allowedSortColumns = {
-      date: 's.date',
+      order_date: 's.order_date',
       total_amount: 's.total_amount',
       party_name: 'p.name',
-      status: 's.status',
+      payment_status: 's.payment_status',
       done_by: 'db.name',
       cost_center: 'cc.name',
       invoice_number: 's.invoice_number',
@@ -145,10 +145,10 @@ class SalesRepository {
       if (dbColumn) {
         query += ` ORDER BY ${dbColumn} ${direction}, s.id DESC`
       } else {
-        query += ' ORDER BY s.date DESC, s.id DESC'
+        query += ' ORDER BY s.order_date DESC, s.id DESC'
       }
     } else {
-      query += ' ORDER BY s.date DESC, s.id DESC'
+      query += ' ORDER BY s.order_date DESC, s.id DESC'
     }
 
     const { rows } = await db.query(query, params)
@@ -178,7 +178,7 @@ class SalesRepository {
     let paramIndex = 2
 
     const filterConfig = {
-      status: { operator: '=', column: 's.status' },
+      payment_status: { operator: '=', column: 's.payment_status' },
       party_id: { operator: '=', column: 's.party_id' },
       done_by_id: { operator: '=', column: 's.done_by_id' },
       cost_center_id: { operator: '=', column: 's.cost_center_id' },
@@ -186,8 +186,8 @@ class SalesRepository {
       max_total_amount: { operator: '<=', column: 's.total_amount' },
       min_paid_amount: { operator: '>=', column: 's.paid_amount' },
       max_paid_amount: { operator: '<=', column: 's.paid_amount' },
-      start_date: { operator: '>=', column: 's.date' },
-      end_date: { operator: '<=', column: 's.date' },
+      start_date: { operator: '>=', column: 's.order_date' },
+      end_date: { operator: '<=', column: 's.order_date' },
       party_name: { operator: 'ILIKE', column: 'p.name', isString: true },
       total_amount: { operator: '=', column: 's.total_amount' },
       paid_amount: { operator: '=', column: 's.paid_amount' },
@@ -211,9 +211,9 @@ class SalesRepository {
             AND v.to_ledger_id = $${paramIndex++}
           )`
           params.push(otherFilters[key])
-        } else if (key === 'status' && typeof otherFilters[key] === 'string' && otherFilters[key].includes(',')) {
+        } else if (key === 'payment_status' && typeof otherFilters[key] === 'string' && otherFilters[key].includes(',')) {
            const statuses = otherFilters[key].split(',').map(s => s.trim());
-           whereClause += ` AND s.status = ANY($${paramIndex++})`
+           whereClause += ` AND s.payment_status = ANY($${paramIndex++})`
            params.push(statuses)
         } else {
           const { operator, column, isString } = filterConfig[key]
@@ -230,7 +230,7 @@ class SalesRepository {
     // Search config
     const searchConfig = {
         party_name: { operator: 'ILIKE', column: 'p.name' },
-        status: { operator: 'ILIKE', column: 's.status' },
+        payment_status: { operator: 'ILIKE', column: 's.payment_status' },
         total_amount: { operator: '=', column: 's.total_amount' },
         invoice_number: { operator: 'ILIKE', column: 's.invoice_number' },
         done_by_name: { operator: 'ILIKE', column: 'db.name' },
@@ -283,10 +283,10 @@ class SalesRepository {
       `
   
       const allowedSortColumns = {
-        date: 's.date',
+        order_date: 's.order_date',
         total_amount: 's.total_amount',
         party_name: 'p.name',
-        status: 's.status',
+        payment_status: 's.payment_status',
         done_by: 'db.name',
         cost_center: 'cc.name',
         invoice_number: 's.invoice_number',
@@ -299,10 +299,10 @@ class SalesRepository {
         if (dbColumn) {
           mainQuery += ` ORDER BY ${dbColumn} ${direction}, s.id DESC`
         } else {
-          mainQuery += ' ORDER BY s.date DESC, s.id DESC'
+          mainQuery += ' ORDER BY s.order_date DESC, s.id DESC'
         }
       } else {
-        mainQuery += ' ORDER BY s.date DESC, s.id DESC'
+        mainQuery += ' ORDER BY s.order_date DESC, s.id DESC'
       }
   
       mainQuery += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
@@ -339,7 +339,10 @@ class SalesRepository {
         total_amount,
         change_return = 0,
         discount,
-        date,
+        order_date,
+        expected_delivery,
+        actual_delivery,
+        order_status,
         note,
         invoice_number,
       } = saleData
@@ -348,8 +351,12 @@ class SalesRepository {
       const initialStatus = 'unpaid';
 
       const insertSaleQuery = `
-        INSERT INTO sales(tenant_id, party_id, done_by_id, cost_center_id, total_amount, paid_amount, change_return, discount, date, status, note, invoice_number)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        INSERT INTO sales(
+            tenant_id, party_id, done_by_id, cost_center_id, total_amount, 
+            paid_amount, change_return, discount, order_date, expected_delivery, 
+            actual_delivery, order_status, payment_status, note, invoice_number
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         RETURNING *;
       `
       const saleResult = await client.query(insertSaleQuery, [
@@ -361,7 +368,10 @@ class SalesRepository {
         initialPaid,
         change_return,
         discount,
-        date,
+        order_date || new Date(),
+        expected_delivery,
+        actual_delivery,
+        order_status || 'pending',
         initialStatus,
         note,
         invoice_number,
@@ -396,7 +406,10 @@ class SalesRepository {
         total_amount,
         change_return = 0,
         discount,
-        date,
+        order_date,
+        expected_delivery,
+        actual_delivery,
+        order_status,
         note,
         invoice_number,
       } = saleData
@@ -404,15 +417,20 @@ class SalesRepository {
       const updateSaleQuery = `
         UPDATE sales
         SET party_id = $1, total_amount = $2, discount = $3, 
-            date = $4, done_by_id = $5, cost_center_id = $6, note = $7, invoice_number = $8, change_return = $9
-        WHERE id = $10 AND tenant_id = $11
+            order_date = $4, expected_delivery = $5, actual_delivery = $6, 
+            order_status = $7, done_by_id = $8, cost_center_id = $9, note = $10, 
+            invoice_number = $11, change_return = $12
+        WHERE id = $13 AND tenant_id = $14
         RETURNING *;
       `
       await client.query(updateSaleQuery, [
         party_id,
         total_amount,
         discount,
-        date,
+        order_date,
+        expected_delivery,
+        actual_delivery,
+        order_status,
         done_by_id,
         cost_center_id,
         note,
@@ -582,13 +600,13 @@ class SalesRepository {
       UPDATE sales
       SET
           paid_amount = paid_amount + $1,
-          status = CASE
+          payment_status = CASE
               WHEN ROUND(paid_amount + $1, 2) >= total_amount THEN 'paid'
               WHEN ROUND(paid_amount + $1, 2) > 0 THEN 'partial'
               ELSE 'unpaid'
           END
       WHERE id = $2
-      RETURNING id, status;
+      RETURNING id, payment_status;
     `;
     const { rows } = await client.query(query, [amountChange, id]);
     if (rows.length === 0) {

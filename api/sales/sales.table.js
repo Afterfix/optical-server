@@ -22,8 +22,11 @@ module.exports = async (client) => {
           paid_amount DECIMAL(10, 2) NOT NULL,
           change_return DECIMAL(10, 2) DEFAULT 0.00,
           discount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-          date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          status VARCHAR(255) NOT NULL,
+          order_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          expected_delivery TIMESTAMP,
+          actual_delivery TIMESTAMP,
+          order_status VARCHAR(20) DEFAULT 'pending',
+          payment_status VARCHAR(255) NOT NULL,
           invoice_number VARCHAR(100) NOT NULL,
           note TEXT DEFAULT NULL
         );
