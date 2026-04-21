@@ -38,6 +38,7 @@ const transactionFieldPermissionsRoutes = require("./api/transactionFieldPermiss
 const purchaseRoutes = require("./api/purchase/purchase.routes");
 
 
+const salesRoutes = require("./api/sales/sales.routes");
 
 const db = require("./config/db");
 
@@ -88,6 +89,8 @@ app.use("/api/transaction-field-permissions", transactionFieldPermissionsRoutes)
 app.use("/api/purchases",purchaseRoutes);
 
 
+
+app.use("/api/sales", salesRoutes);
 
 
 

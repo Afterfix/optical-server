@@ -15,7 +15,7 @@ module.exports = async (client) => {
         CREATE TABLE sales (
           id SERIAL PRIMARY KEY,
           tenant_id INTEGER REFERENCES "tenant"(id) ON DELETE CASCADE, 
-          customer_id INTEGER NOT NULL REFERENCES customer(id), 
+          party_id INTEGER NOT NULL REFERENCES party(id), 
           done_by_id INTEGER REFERENCES "done_by"(id) ON DELETE SET NULL,
           cost_center_id INTEGER REFERENCES "cost_center"(id) ON DELETE SET NULL,
           total_amount DECIMAL(10, 2) NOT NULL,
@@ -36,7 +36,7 @@ module.exports = async (client) => {
       await client.query(
         `CREATE INDEX idx_sales_tenant_id ON sales(tenant_id);`
       )
-      await client.query(`CREATE INDEX idx_sales_customer_id ON sales(customer_id);`)
+      await client.query(`CREATE INDEX idx_sales_party_id ON sales(party_id);`)
       await client.query(
         `CREATE INDEX idx_sales_done_by_id ON sales(done_by_id);`
       )
