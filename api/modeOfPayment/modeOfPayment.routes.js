@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const validateToken = require("../../../middlewares/validateToken");
+const validateToken = require("../../middlewares/validateToken");
 const ModeOfPaymentRepository = require("./modeOfPayment.repository");
 const ModeOfPaymentService = require("./modeOfPayment.service");
 const ModeOfPaymentController = require("./modeOfPayment.controller");

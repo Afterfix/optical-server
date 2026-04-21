@@ -9,8 +9,8 @@ const userRoutes = require("./api/user/user.routes");
 const employeeRoutes = require("./api/employee/employee.routes");
 const employeepositionRoutes = require("./api/employeeposition/employeeposition.routes");
 // const employeeAttendanceRoutes = require("./api/employeeAttendance/employeeAttendance.routes");
-// const employeePayrollRoutes = require("./api/employeePayroll/employeePayroll.routes");
-// const expenseRoutes = require("./api/expense/expense.routes");
+const PayrollRoutes = require("./api/Payroll/Payroll.routes");
+const expenseRoutes = require("./api/expense/expense.routes");
 const expenseTypeRoutes = require("./api/expenseType/expenseType.routes");
 const cost_centerRoutes = require('./api/costCenter/costCenter.routes')
 const done_byRoutes = require('./api/doneBy/doneBy.routes')
@@ -26,6 +26,12 @@ const servicesRoutes = require("./api/services/services.routes");
 const brandRoutes = require("./api/brand/brand.routes");
 const categoryRoutes = require("./api/category/category.routes");
 const customerRoutes = require("./api/customer/customer.routes");
+const accountRoutes = require("./api/account/account.routes");
+const partnerRoutes = require("./api/partner/partner.routes");
+const partyRoutes = require("./api/party/party.routes");
+const ledgerRoutes = require("./api/ledger/ledger.routes");
+const voucherRoutes = require("./api/voucher/voucher.routes");
+const modeofpaymentRoutes = require("./api/modeOfPayment/modeOfPayment.routes");
 
 const db = require("./config/db");
 
@@ -47,8 +53,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/employee-position", employeepositionRoutes);
 // app.use("/api/employee-attendance", employeeAttendanceRoutes);
-// app.use("/api/employee-payroll", employeePayrollRoutes);
-// app.use("/api/expenses", expenseRoutes);
+app.use("/api/employee-payroll", PayrollRoutes);
+app.use("/api/expenses", expenseRoutes);
 app.use('/api/expense-type', expenseTypeRoutes);
 app.use('/api/cost-centers', cost_centerRoutes)
 app.use('/api/done-by', done_byRoutes)
@@ -64,6 +70,12 @@ app.use("/api/services", servicesRoutes);
 app.use("/api/brand", brandRoutes);
 app.use("/api/category", categoryRoutes);
 app.use("/api/customer", customerRoutes);
+app.use("/api/accounts", accountRoutes);
+app.use("/api/partners", partnerRoutes);
+app.use("/api/party", partyRoutes);
+app.use("/api/ledgers", ledgerRoutes);
+app.use("/api/vouchers", voucherRoutes);
+app.use("/api/mode-of-payment", modeofpaymentRoutes);
 
 
 app.use((err, req, res, next) => {

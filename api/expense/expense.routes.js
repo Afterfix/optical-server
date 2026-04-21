@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const validateToken = require("../../../middlewares/validateToken");
+const validateToken = require("../../middlewares/validateToken");
 
 const ExpenseRepository = require("./expense.repository");
 const ExpenseService = require("./expense.service");
