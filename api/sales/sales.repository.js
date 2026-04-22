@@ -7,8 +7,8 @@ class SalesRepository {
   }
 
   async getByUserId(db, tenantId, filters = {}) {
-    const { sort, searchType, searchKey, ids, ...otherFilters } = filters 
-    
+    const { sort, searchType, searchKey, ids, ...otherFilters } = filters
+
     // payment_status column
     const paymentStatusColumn = 's.payment_status';
 
@@ -71,7 +71,7 @@ class SalesRepository {
       paid_amount: { operator: '=', column: 's.paid_amount' },
       balance: { operator: '=', column: '(s.total_amount - s.paid_amount)' },
       invoice_number: { operator: '=', column: 's.invoice_number' },
-      account_id: {}, 
+      account_id: {},
     }
 
     Object.keys(otherFilters).forEach((key) => {
@@ -91,7 +91,7 @@ class SalesRepository {
           params.push(otherFilters[key])
         } else if (key === 'payment_status' && typeof otherFilters[key] === 'string' && otherFilters[key].includes(',')) {
           const statuses = otherFilters[key].split(',').map(s => s.trim());
-          query += ` AND s.payment_status = ANY($${paramIndex++})` 
+          query += ` AND s.payment_status = ANY($${paramIndex++})`
           params.push(statuses)
         } else {
           const { operator, column, isString } = filterConfig[key]
@@ -104,19 +104,19 @@ class SalesRepository {
         }
       }
     })
-    
-    if (ids) {
-        let idArray = [];
-        if (Array.isArray(ids)) {
-            idArray = ids.map(id => parseInt(id)).filter(id => !isNaN(id));
-        } else if (typeof ids === 'string') {
-            idArray = ids.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
-        }
 
-        if (idArray.length > 0) {
-            query += ` AND s.id = ANY($${paramIndex++})`; 
-            params.push(idArray);
-        }
+    if (ids) {
+      let idArray = [];
+      if (Array.isArray(ids)) {
+        idArray = ids.map(id => parseInt(id)).filter(id => !isNaN(id));
+      } else if (typeof ids === 'string') {
+        idArray = ids.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+      }
+
+      if (idArray.length > 0) {
+        query += ` AND s.id = ANY($${paramIndex++})`;
+        params.push(idArray);
+      }
     }
 
 
@@ -140,13 +140,22 @@ class SalesRepository {
     }
 
     const allowedSortColumns = {
+      // Map 'date' (frontend key) to 's.order_date' (DB column)
+      date: 's.order_date',
       order_date: 's.order_date',
+
+      // Existing mappings
       total_amount: 's.total_amount',
       party_name: 'p.name',
       payment_status: 's.payment_status',
       done_by: 'db.name',
       cost_center: 'cc.name',
       invoice_number: 's.invoice_number',
+
+      // ADD THESE MISSING FIELDS:
+      paid_amount: 's.paid_amount',
+      // You can sort by calculated columns using the expression
+      balance: '(s.total_amount - s.paid_amount)'
     }
 
     if (sort) {
@@ -204,7 +213,7 @@ class SalesRepository {
       paid_amount: { operator: '=', column: 's.paid_amount' },
       balance: { operator: '=', column: '(s.total_amount - s.paid_amount)' },
       invoice_number: { operator: '=', column: 's.invoice_number' },
-      account_id: {}, 
+      account_id: {},
     }
 
     Object.keys(otherFilters).forEach((key) => {
@@ -223,9 +232,9 @@ class SalesRepository {
           )`
           params.push(otherFilters[key])
         } else if (key === 'payment_status' && typeof otherFilters[key] === 'string' && otherFilters[key].includes(',')) {
-           const statuses = otherFilters[key].split(',').map(s => s.trim());
-           whereClause += ` AND s.payment_status = ANY($${paramIndex++})`
-           params.push(statuses)
+          const statuses = otherFilters[key].split(',').map(s => s.trim());
+          whereClause += ` AND s.payment_status = ANY($${paramIndex++})`
+          params.push(statuses)
         } else {
           const { operator, column, isString } = filterConfig[key]
           let value = otherFilters[key]
@@ -237,35 +246,35 @@ class SalesRepository {
         }
       }
     })
-    
+
     // Search config
     const searchConfig = {
-        party_name: { operator: 'ILIKE', column: 'p.name' },
-        payment_status: { operator: 'ILIKE', column: 's.payment_status' },
-        total_amount: { operator: '=', column: 's.total_amount' },
-        invoice_number: { operator: 'ILIKE', column: 's.invoice_number' },
-        done_by_name: { operator: 'ILIKE', column: 'db.name' },
-        cost_center_name: { operator: 'ILIKE', column: 'cc.name' },
+      party_name: { operator: 'ILIKE', column: 'p.name' },
+      payment_status: { operator: 'ILIKE', column: 's.payment_status' },
+      total_amount: { operator: '=', column: 's.total_amount' },
+      invoice_number: { operator: 'ILIKE', column: 's.invoice_number' },
+      done_by_name: { operator: 'ILIKE', column: 'db.name' },
+      cost_center_name: { operator: 'ILIKE', column: 'cc.name' },
+    }
+
+    if (searchType && searchKey != null && searchKey !== '') {
+      if (searchConfig[searchType]) {
+        const { operator, column } = searchConfig[searchType]
+        let value = operator === 'ILIKE' ? `%${searchKey}%` : searchKey
+        whereClause += ` AND ${column} ${operator} $${paramIndex}`
+        params.push(value)
+        paramIndex++
       }
-  
-      if (searchType && searchKey != null && searchKey !== '') {
-        if (searchConfig[searchType]) {
-          const { operator, column } = searchConfig[searchType]
-          let value = operator === 'ILIKE' ? `%${searchKey}%` : searchKey
-          whereClause += ` AND ${column} ${operator} $${paramIndex}`
-          params.push(value)
-          paramIndex++
-        }
-      }
-  
-      const aggregationQuery = `
+    }
+
+    const aggregationQuery = `
           SELECT
               COALESCE(SUM(s.total_amount), 0) as total_amount,
               COALESCE(SUM(s.paid_amount), 0) as paid_amount
           ${fromAndJoins}
           ${whereClause}
       `
-      let mainQuery = `
+    let mainQuery = `
           SELECT 
               s.*,
               p.name as party_name,
@@ -303,50 +312,58 @@ class SalesRepository {
           ${fromAndJoins}
           ${whereClause}
       `
-  
-      const allowedSortColumns = {
-        order_date: 's.order_date',
-        total_amount: 's.total_amount',
-        party_name: 'p.name',
-        payment_status: 's.payment_status',
-        done_by: 'db.name',
-        cost_center: 'cc.name',
-        invoice_number: 's.invoice_number',
-      }
-  
-      if (sort) {
-        const direction = sort.startsWith('-') ? 'DESC' : 'ASC'
-        const columnKey = sort.startsWith('-') ? sort.substring(1) : sort
-        const dbColumn = allowedSortColumns[columnKey]
-        if (dbColumn) {
-          mainQuery += ` ORDER BY ${dbColumn} ${direction}, s.id DESC`
-        } else {
-          mainQuery += ' ORDER BY s.order_date DESC, s.id DESC'
-        }
+    const allowedSortColumns = {
+      // Map 'date' (frontend key) to 's.order_date' (DB column)
+      date: 's.order_date',
+      order_date: 's.order_date',
+
+      // Existing mappings
+      total_amount: 's.total_amount',
+      party_name: 'p.name',
+      payment_status: 's.payment_status',
+      done_by: 'db.name',
+      cost_center: 'cc.name',
+      invoice_number: 's.invoice_number',
+
+      // ADD THESE MISSING FIELDS:
+      paid_amount: 's.paid_amount',
+      // You can sort by calculated columns using the expression
+      balance: '(s.total_amount - s.paid_amount)'
+    }
+
+    if (sort) {
+      const direction = sort.startsWith('-') ? 'DESC' : 'ASC'
+      const columnKey = sort.startsWith('-') ? sort.substring(1) : sort
+      const dbColumn = allowedSortColumns[columnKey]
+      if (dbColumn) {
+        mainQuery += ` ORDER BY ${dbColumn} ${direction}, s.id DESC`
       } else {
         mainQuery += ' ORDER BY s.order_date DESC, s.id DESC'
       }
-  
-      mainQuery += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
-      const mainQueryParams = [...params, limit, offset]
-  
-      const [mainResult, aggregationResult] = await Promise.all([
-        db.query(mainQuery, mainQueryParams),
-        db.query(aggregationQuery, params),
-      ])
-  
-      const { rows } = mainResult
-      const aggregationData = aggregationResult.rows[0]
-  
-      const totalCount = rows.length > 0 ? parseInt(rows[0].total_count, 10) : 0
-      const sales = rows.map(({ total_count, ...rest }) => rest)
-  
-      return {
-        sales,
-        totalCount,
-        total_amount: aggregationData.total_amount,
-        paid_amount: aggregationData.paid_amount,
-      }
+    } else {
+      mainQuery += ' ORDER BY s.order_date DESC, s.id DESC'
+    }
+
+    mainQuery += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
+    const mainQueryParams = [...params, limit, offset]
+
+    const [mainResult, aggregationResult] = await Promise.all([
+      db.query(mainQuery, mainQueryParams),
+      db.query(aggregationQuery, params),
+    ])
+
+    const { rows } = mainResult
+    const aggregationData = aggregationResult.rows[0]
+
+    const totalCount = rows.length > 0 ? parseInt(rows[0].total_count, 10) : 0
+    const sales = rows.map(({ total_count, ...rest }) => rest)
+
+    return {
+      sales,
+      totalCount,
+      total_amount: aggregationData.total_amount,
+      paid_amount: aggregationData.paid_amount,
+    }
   }
 
   async create(db, saleData, items) {
@@ -354,7 +371,7 @@ class SalesRepository {
     try {
       await client.query('BEGIN')
       const {
-        tenant_id, 
+        tenant_id,
         party_id,
         done_by_id,
         cost_center_id,
@@ -407,7 +424,7 @@ class SalesRepository {
         items,
         tenant_id
       )
-      
+
       await client.query('COMMIT')
       return this.getById(db, newSale.id, tenant_id)
     } catch (error) {
@@ -465,7 +482,7 @@ class SalesRepository {
 
       await this.salesItemRepository.deleteBySalesId(client, id)
       await this.salesItemRepository.createMany(client, id, items, tenantId)
-      
+
       await client.query('COMMIT')
       return this.getById(db, id, tenantId)
     } catch (error) {
@@ -618,7 +635,7 @@ class SalesRepository {
 
     return rowCount
   }
-   async updatePaymentAndStatus(client, id, amountChange) {
+  async updatePaymentAndStatus(client, id, amountChange) {
     const query = `
       UPDATE sales
       SET
