@@ -15,6 +15,15 @@ module.exports = async (client) => {
           tenant_id INTEGER REFERENCES "tenant"(id) ON DELETE CASCADE,
           customer_id INTEGER REFERENCES party(id) ON DELETE CASCADE,
           
+          item_name VARCHAR(255),
+          issue_report TEXT,
+          diagnosis TEXT,
+          service TEXT,
+          service_charge NUMERIC(12, 2) DEFAULT 0,
+          service_charge_status VARCHAR(50) DEFAULT 'unpaid',
+          estimate_date TIMESTAMP,
+          complete_date TIMESTAMP,
+          
           description TEXT,
           status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'completed')),
           cost NUMERIC(12, 2) DEFAULT 0,
@@ -24,7 +33,6 @@ module.exports = async (client) => {
         );
       `);
       console.log('✅ "services" table created.');
-
       // Indexes for performance
       await client.query(
         `CREATE INDEX idx_services_tenant_id ON services(tenant_id);`

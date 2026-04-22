@@ -19,7 +19,8 @@ class DashboardController {
 
   async getWeeklySalesPurchases(req, res, next) {
     try {
-      const data = await this.service.getWeeklySalesPurchases(req.user, req.db);
+      const { period } = req.query;
+      const data = await this.service.getWeeklySalesPurchases(req.user, req.db, period);
       res.json(data);
     } catch (e) {
       next(e);
@@ -48,6 +49,14 @@ class DashboardController {
   async getRecentSales(req, res, next) {
     try {
       const data = await this.service.getRecentSales(req.user, req.db);
+      res.json(data);
+    } catch (e) {
+      next(e);
+    }
+  }
+  async getRecentPurchases(req, res, next) {
+    try {
+      const data = await this.service.getRecentPurchases(req.user, req.db);
       res.json(data);
     } catch (e) {
       next(e);

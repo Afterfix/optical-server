@@ -31,9 +31,9 @@ class DashboardRepository {
 
     const serviceQuery = `
       SELECT 
-        COALESCE(SUM(total_price), 0) as total_profit
-      FROM sale_item 
-      WHERE tenant_id = $1 AND lens_id IS NOT NULL AND created_at >= NOW() - ${dateFilter}
+        COALESCE(SUM(service_charge - cost), 0) as total_profit
+      FROM services 
+      WHERE tenant_id = $1 AND created_at >= NOW() - ${dateFilter}
     `;
 
     const [sales, purchase, expense, service] = await Promise.all([
@@ -58,20 +58,59 @@ class DashboardRepository {
     };
   }
 
-  async getWeeklySalesPurchases(db, tenantId) {
-    const query = `
-      WITH RECURSIVE days AS (
-        SELECT CURRENT_DATE - INTERVAL '6 days' as d
-        UNION ALL
-        SELECT d + INTERVAL '1 day' FROM days WHERE d < CURRENT_DATE
-      )
-      SELECT 
-        TO_CHAR(days.d, 'Dy') as day,
-        COALESCE((SELECT SUM(total_amount) FROM sales WHERE tenant_id = $1 AND DATE(order_date) = days.d), 0) as "Sales",
-        COALESCE((SELECT SUM(total_amount) FROM purchase WHERE tenant_id = $1 AND DATE(date) = days.d), 0) as "Purchases"
-      FROM days
-      ORDER BY days.d
-    `;
+  async getWeeklySalesPurchases(db, tenantId, period = "month") {
+    let query = "";
+    if (period === "today") {
+      query = `
+        WITH hours AS (
+          SELECT generate_series(
+            date_trunc('day', NOW()) + INTERVAL '6 hours',
+            date_trunc('day', NOW()) + INTERVAL '22 hours',
+            '2 hour'::interval
+          ) as hr
+        )
+        SELECT 
+          TO_CHAR(h.hr, 'HH24:MI') as day,
+          (SELECT COALESCE(SUM(total_amount), 0) FROM sales WHERE tenant_id = $1 AND order_date >= h.hr AND order_date < h.hr + INTERVAL '2 hour') as "Sales",
+          (SELECT COALESCE(SUM(total_amount), 0) FROM purchase WHERE tenant_id = $1 AND date >= h.hr AND date < h.hr + INTERVAL '2 hour') as "Purchases"
+        FROM hours h
+        ORDER BY h.hr;
+      `;
+    } else if (period === "year") {
+      query = `
+        WITH months AS (
+          SELECT generate_series(
+            date_trunc('year', NOW()),
+            date_trunc('year', NOW()) + INTERVAL '11 months',
+            '1 month'::interval
+          ) as mo
+        )
+        SELECT 
+          TO_CHAR(m.mo, 'Mon') as day,
+          (SELECT COALESCE(SUM(total_amount), 0) FROM sales WHERE tenant_id = $1 AND order_date >= m.mo AND order_date < m.mo + INTERVAL '1 month') as "Sales",
+          (SELECT COALESCE(SUM(total_amount), 0) FROM purchase WHERE tenant_id = $1 AND date >= m.mo AND date < m.mo + INTERVAL '1 month') as "Purchases"
+        FROM months m
+        ORDER BY m.mo;
+      `;
+    } else {
+      // Week or Month
+      let interval = period === "week" ? "6 days" : "29 days";
+      query = `
+        WITH days AS (
+          SELECT generate_series(
+            CURRENT_DATE - INTERVAL '${interval}',
+            CURRENT_DATE,
+            '1 day'::interval
+          )::date as day
+        )
+        SELECT 
+          TO_CHAR(d.day, 'DD Mon') as day,
+          (SELECT COALESCE(SUM(total_amount), 0) FROM sales WHERE tenant_id = $1 AND order_date::date = d.day) as "Sales",
+          (SELECT COALESCE(SUM(total_amount), 0) FROM purchase WHERE tenant_id = $1 AND date::date = d.day) as "Purchases"
+        FROM days d
+        ORDER BY d.day;
+      `;
+    }
     const { rows } = await db.query(query, [tenantId]);
     return rows;
   }
@@ -124,6 +163,24 @@ class DashboardRepository {
       WHERE s.tenant_id = $1
       ORDER BY s.order_date DESC
       LIMIT 5
+    `;
+    const { rows } = await db.query(query, [tenantId]);
+    return rows;
+  }
+  async getRecentPurchases(db, tenantId) {
+    const query = `
+      SELECT 
+        p.id,
+        pt.name as party,
+        p.invoice_number as reference,
+        p.date,
+        p.total_amount as "grandTotal",
+        p.status as "paymentStatus"
+      FROM purchase p
+      JOIN party pt ON p.party_id = pt.id
+      WHERE p.tenant_id = $1
+      ORDER BY p.date DESC
+      LIMIT 10
     `;
     const { rows } = await db.query(query, [tenantId]);
     return rows;

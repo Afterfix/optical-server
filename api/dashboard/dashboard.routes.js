@@ -12,5 +12,6 @@ router.get("/weekly-sales-purchases", (req, res, next) => controller.getWeeklySa
 router.get("/top-selling-products", (req, res, next) => controller.getTopSellingProducts(req, res, next));
 router.get("/stock-alerts", (req, res, next) => controller.getStockAlerts(req, res, next));
 router.get("/recent-sales", (req, res, next) => controller.getRecentSales(req, res, next));
+router.get("/recent-purchases", (req, res, next) => controller.getRecentPurchases(req, res, next));
 
 module.exports = router;
