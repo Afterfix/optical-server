@@ -99,6 +99,35 @@ const deletePrintImageFile = async (relativeFilePath) => {
   }
 };
 
+const moveFrameVariantImage = async (file, tenantId) => {
+  if (!file || !tenantId) return null;
+  const finalDirectory = path.join(__dirname, '..', 'uploads', String(tenantId), 'frame-variants');
+  await fs.mkdir(finalDirectory, { recursive: true });
+  const newPath = path.join(finalDirectory, file.filename);
+  const oldPath = file.path;
+  try {
+    await fs.rename(oldPath, newPath);
+    return path.join('uploads', String(tenantId), 'frame-variants', file.filename).replace(/\\/g, '/');
+  } catch (error) {
+    console.error('Error moving frame variant image:', error);
+    try { await fs.unlink(oldPath); } catch (e) {}
+    return null;
+  }
+};
+
+const deleteFrameVariantImageFile = async (relativeFilePath) => {
+  if (!relativeFilePath) return;
+  try {
+    const cleanPath = relativeFilePath.startsWith('/') ? relativeFilePath.substring(1) : relativeFilePath;
+    const fullPath = path.join(__dirname, '..', cleanPath);
+    await fs.unlink(fullPath);
+  } catch (err) {
+    if (err.code !== 'ENOENT') {
+      console.error(`Failed to delete frame variant image ${relativeFilePath}:`, err);
+    }
+  }
+};
+
 module.exports = {
   upload,
   moveItemImage,
@@ -106,4 +135,6 @@ module.exports = {
   movePrintHeaderImage,
   movePrintQrImage,
   deletePrintImageFile,
+  moveFrameVariantImage,
+  deleteFrameVariantImageFile,
 };

@@ -19,6 +19,7 @@ module.exports = async (client) => {
           size VARCHAR(50),
           sku VARCHAR(100) UNIQUE NOT NULL,
           stock_qty INTEGER DEFAULT 0,
+          image TEXT,
           
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         );

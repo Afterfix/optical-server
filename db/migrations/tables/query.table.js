@@ -5,6 +5,9 @@ module.exports = async (client) => {
     await client.query(updateServicesTable);
     console.log("✅ Services table updated (item_name, charge, etc added).");
 
+    await client.query(addFrameVariantImageColumn);
+    console.log("✅ frame_variants table updated (image column ensured).");
+
   } catch (e) {
     console.error("❌ An error occurred during migration:", e.message);
     throw e;
@@ -38,6 +41,18 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='services' AND column_name='complete_date') THEN
         ALTER TABLE services ADD COLUMN complete_date TIMESTAMP;
     END IF;
+END $$;
+`;
+
+const addFrameVariantImageColumn = `
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name='frame_variants' AND column_name='image'
+  ) THEN
+    ALTER TABLE frame_variants ADD COLUMN image TEXT;
+  END IF;
 END $$;
 `;
 
