@@ -10,7 +10,7 @@ class BrandRepository {
             LEFT JOIN "done_by" db ON b.done_by_id = db.id
             LEFT JOIN "cost_center" cc ON b.cost_center_id = cc.id
         `;
-            
+
         const params = [];
         let paramIndex = 1;
         const whereClauses = [];
@@ -60,7 +60,7 @@ class BrandRepository {
             params.push(value);
             paramIndex++;
         }
-        
+
         if (whereClauses.length > 0) {
             query += ` WHERE ${whereClauses.join(' AND ')}`;
         }
@@ -94,11 +94,12 @@ class BrandRepository {
         const { tenant_id, name, done_by_id, cost_center_id } = brandData;
         const { rows } = await db.query(
             `INSERT INTO "brand" (tenant_id, name, done_by_id, cost_center_id)
-             VALUES ($1, $2, $3, $4)
-             RETURNING *`,
+         VALUES ($1, $2, $3, $4)
+         RETURNING id`, // Just get the ID
             [tenant_id, name, done_by_id, cost_center_id]
         );
-        return rows[0];
+        // Fetch the full record with joins immediately after creating
+        return this.getById(db, rows[0].id);
     }
 
     // ADDED: db param
@@ -115,7 +116,7 @@ class BrandRepository {
             query += " AND b.tenant_id = $2";
             params.push(tenantId);
         }
-        
+
         const { rows } = await db.query(query, params);
         return rows[0];
     }
@@ -124,10 +125,7 @@ class BrandRepository {
     async update(db, id, tenantId = null, data) {
         const fields = Object.keys(data);
         const values = Object.values(data);
-
-        if (fields.length === 0) {
-            return this.getById(db, id, tenantId); // Pass db recursively
-        }
+        if (fields.length === 0) return this.getById(db, id, tenantId);
 
         const setClause = fields
             .map((field, index) => `"${field}" = $${index + 1}`)
@@ -141,10 +139,9 @@ class BrandRepository {
             params.push(tenantId);
         }
 
-        query += " RETURNING *";
-
-        const { rows } = await db.query(query, params);
-        return rows[0];
+        await db.query(query, params);
+        // Fetch the full record with joins immediately after updating
+        return this.getById(db, id, tenantId);
     }
 
     // ADDED: db param
@@ -156,7 +153,7 @@ class BrandRepository {
             query += ` AND tenant_id = $2`;
             params.push(tenantId);
         }
-        
+
         query += " RETURNING id";
 
         const { rows } = await db.query(query, params);
