@@ -28,9 +28,12 @@ class SalesValidator {
               error: 'Each item must have a specific optical ID (frame_variant_id, lens_id, or lens_addon_id)',
           })
       }
-      if (!item.quantity || item.unit_price === undefined) {
+      const hasPrice = item.unit_price !== undefined || 
+                       (item.frame_price !== undefined || item.lens_price !== undefined || item.addon_price !== undefined);
+
+      if (!item.quantity || !hasPrice) {
         return res.status(400).json({
-          error: 'Each item must have quantity and unit_price',
+          error: 'Each item must have quantity and price (unit_price or specialized prices)',
         })
       }
     }

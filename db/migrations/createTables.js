@@ -41,8 +41,8 @@ const createVoucherTransactionTable = require("../../api/voucherTransaction/vouc
 const createTrasactionLedgerTable = require("../../api/transactionLedger/transactionLedger.table.js");
 const createTransactionFieldPermissionsTable = require("../../api/transactionFieldPermissions/transactionFieldPermissions.table.js");
 const createTransactionTable = require("../../api/transaction/transaction.table.js");
-const createVoucherTransactionTable = require("../../api/voucherTransaction/voucherTransaction.table.js");  
 const createQueryTable = require("./tables/query.table.js");
+const createPrintSettingsTable = require("../../api/printSettings/printSettings.table.js");
 
 const createTables = async () => {
   const client = await pool.connect();
@@ -108,6 +108,7 @@ const createTables = async () => {
 
     await createSalesTable(client);
     await createSaleItemTable(client);
+    await createPrintSettingsTable(client);
     // await createSaleReturnTable(client);
 
     console.log("✅ All tables created successfully in the correct order.");

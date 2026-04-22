@@ -18,7 +18,18 @@ class SalesRepository {
                 p.name as party_name,
                 p.ledger_id as party_ledger_id, -- Fetch Ledger ID
                 db.name as done_by_name,      
+                db.name as done_by,           -- Alias for frontend mapping
                 cc.name as cost_center_name,
+                cc.name as cost_center,        -- Alias for frontend mapping
+                (s.total_amount - s.paid_amount) as balance, -- Calculated balance
+                (
+                  SELECT string_agg(DISTINCT l.name, ', ')
+                  FROM voucher_transactions vt
+                  JOIN voucher v ON vt.voucher_id = v.id
+                  JOIN ledger l ON v.to_ledger_id = l.id
+                  WHERE vt.invoice_id::integer = s.id 
+                    AND vt.invoice_type = 'SALE'
+                ) as account,
                 (
                   SELECT json_agg(sp_agg)
                   FROM (
@@ -260,7 +271,18 @@ class SalesRepository {
               p.name as party_name,
               p.ledger_id as party_ledger_id, -- Fetch Ledger ID
               db.name as done_by_name,      
+              db.name as done_by,           -- Alias for frontend mapping
               cc.name as cost_center_name,
+              cc.name as cost_center,        -- Alias for frontend mapping
+              (s.total_amount - s.paid_amount) as balance, -- Calculated balance
+              (
+                SELECT string_agg(DISTINCT l.name, ', ')
+                FROM voucher_transactions vt
+                JOIN voucher v ON vt.voucher_id = v.id
+                JOIN ledger l ON v.to_ledger_id = l.id
+                WHERE vt.invoice_id::integer = s.id 
+                  AND vt.invoice_type = 'SALE'
+              ) as account,
               COUNT(*) OVER() as total_count,
               (
                 SELECT json_agg(sp_agg)
@@ -346,6 +368,7 @@ class SalesRepository {
         note,
         invoice_number,
       } = saleData
+
 
       const initialPaid = 0;
       const initialStatus = 'unpaid';
@@ -515,7 +538,7 @@ class SalesRepository {
           WHERE si.sales_id = s.id
         ) as tax_amount,
         (
-          SELECT SUM(si.quantity * si.unit_price) 
+          SELECT SUM(si.quantity * (si.frame_price + si.lens_price + si.addon_price)) 
           FROM sale_item si 
           WHERE si.sales_id = s.id
         ) as sub_total,
