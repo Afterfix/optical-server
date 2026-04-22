@@ -2,6 +2,9 @@ module.exports = async (client) => {
   try {
     console.log("⏳ applying database updates...");
 
+    await client.query(udpatePrescriptionTable);
+    console.log("✅ Prescription table updated (prescription_date added).");
+
     await client.query(updateSalesTable);
     console.log("✅ Sales table updated (order_date, expected_delivery, actual_delivery, order_status added; date renamed to order_date).");
 
@@ -34,6 +37,11 @@ module.exports = async (client) => {
 };
 
 // --- Migration Queries ---
+
+const udpatePrescriptionTable = `
+ALTER TABLE prescription
+ADD COLUMN IF NOT EXISTS prescription_date DATE DEFAULT CURRENT_DATE;`;
+
 
 const updateSalesTable = `
 ALTER TABLE sales 

@@ -36,7 +36,7 @@ const createPartyTable = require("../../api/party/party.table.js");
 const createLedgerTable = require("../../api/ledger/ledger.table.js");
 const createVoucherTable = require("../../api/voucher/voucher.table.js");
 const createReportFieldPermissionsTable = require("../../api/reportFieldPermissions/reportFieldPermissions.table.js");
-
+const createVoucherTransactionTable = require("../../api/voucherTransaction/voucherTransaction.table.js");
 const createTrasactionLedgerTable = require("../../api/transactionLedger/transactionLedger.table.js");
 const createTransactionFieldPermissionsTable = require("../../api/transactionFieldPermissions/transactionFieldPermissions.table.js");
 const createTransactionTable = require("../../api/transaction/transaction.table.js");

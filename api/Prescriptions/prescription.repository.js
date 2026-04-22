@@ -1,6 +1,13 @@
 class PrescriptionRepository {
   _buildQueryParts(tenantId, filters = {}) {
-    const { sort, searchType, searchKey, start_date, end_date, ...otherFilters } = filters;
+    const {
+      sort,
+      searchType,
+      searchKey,
+      start_date,
+      end_date,
+      ...otherFilters
+    } = filters;
 
     let whereClause = "";
     const params = [];
@@ -15,23 +22,34 @@ class PrescriptionRepository {
       customer_id: { operator: "=", column: "p.customer_id" },
       doctor_name: { operator: "ILIKE", column: "p.doctor_name" },
       customer_name: { operator: "ILIKE", column: "c.name" },
+      prescription_date: { operator: "=", column: "p.prescription_date" }, // Add this
     };
 
     let filterQuery = "";
 
     // Regular filters
     Object.keys(otherFilters).forEach((key) => {
-      if (otherFilters[key] != null && otherFilters[key] !== "" && filterConfig[key]) {
+      if (
+        otherFilters[key] != null &&
+        otherFilters[key] !== "" &&
+        filterConfig[key]
+      ) {
         const { operator, column } = filterConfig[key];
         filterQuery += ` AND ${column} ${operator} $${paramIndex}`;
-        const value = operator === "ILIKE" ? `%${otherFilters[key]}%` : otherFilters[key];
+        const value =
+          operator === "ILIKE" ? `%${otherFilters[key]}%` : otherFilters[key];
         params.push(value);
         paramIndex++;
       }
     });
 
     // Search logic
-    if (searchType && searchKey != null && searchKey !== "" && filterConfig[searchType]) {
+    if (
+      searchType &&
+      searchKey != null &&
+      searchKey !== "" &&
+      filterConfig[searchType]
+    ) {
       const { operator, column } = filterConfig[searchType];
       filterQuery += ` AND ${column} ${operator} $${paramIndex}`;
       params.push(`%${searchKey}%`);
@@ -49,7 +67,9 @@ class PrescriptionRepository {
     }
 
     if (filterQuery) {
-      whereClause += whereClause.includes("WHERE") ? filterQuery : filterQuery.replace(/^ AND/, " WHERE");
+      whereClause += whereClause.includes("WHERE")
+        ? filterQuery
+        : filterQuery.replace(/^ AND/, " WHERE");
     }
 
     let sortClause = "";
@@ -57,6 +77,7 @@ class PrescriptionRepository {
       created_at: "p.created_at",
       doctor_name: "p.doctor_name",
       customer_name: "c.name",
+      prescription_date: "p.prescription_date",
     };
 
     if (sort) {
@@ -72,7 +93,10 @@ class PrescriptionRepository {
   }
 
   async getAllByTenantId(db, tenantId, filters = {}) {
-    const { whereClause, sortClause, params } = this._buildQueryParts(tenantId, filters);
+    const { whereClause, sortClause, params } = this._buildQueryParts(
+      tenantId,
+      filters,
+    );
     const query = `
       SELECT p.*, c.name as customer_name, c.phone as customer_phone
       FROM prescription p
@@ -89,7 +113,8 @@ class PrescriptionRepository {
     const limit = parseInt(page_size, 10);
     const offset = (parseInt(page, 10) - 1) * limit;
 
-    const { whereClause, sortClause, params, paramIndex } = this._buildQueryParts(tenantId, filters);
+    const { whereClause, sortClause, params, paramIndex } =
+      this._buildQueryParts(tenantId, filters);
 
     let query = `
       SELECT p.*, c.name as customer_name, COUNT(*) OVER() as total_count 
@@ -142,7 +167,9 @@ class PrescriptionRepository {
     const values = Object.values(data);
     if (fields.length === 0) return this.getById(db, id, tenantId);
 
-    const setClause = fields.map((field, index) => `"${field}" = $${index + 1}`).join(", ");
+    const setClause = fields
+      .map((field, index) => `"${field}" = $${index + 1}`)
+      .join(", ");
     let query = `UPDATE prescription SET ${setClause} WHERE id = $${fields.length + 1}`;
     const params = [...values, id];
 
