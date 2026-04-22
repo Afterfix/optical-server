@@ -119,13 +119,8 @@ class SalesValidator {
     }
 
     const { order_status } = req.body;
-    const allowedStatuses = [
-      "pending",
-      "in_progress",
-      "ready",
-      "delivered",
-      "cancelled",
-    ];
+    const allowedStatuses = ["pending", "completed", "delivered", "cancelled"];
+
     if (order_status && !allowedStatuses.includes(order_status)) {
       return res.status(400).json({
         error: `Invalid order_status. Must be one of: ${allowedStatuses.join(", ")}`,
