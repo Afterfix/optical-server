@@ -80,7 +80,7 @@ class FrameVariantRepository {
       filters,
     );
     const query = `
-      SELECT fv.*, f.name as frame_name, f.model_no as frame_model_no 
+      SELECT fv.*, f.name as frame_name, f.model_no as frame_model_no, f.selling_price as price
       FROM frame_variants fv
       LEFT JOIN frame f ON fv.frame_id = f.id
       ${whereClause} 
@@ -99,7 +99,7 @@ class FrameVariantRepository {
       this._buildQueryParts(tenantId, filters);
 
     let query = `
-      SELECT fv.*, f.name as frame_name, f.model_no as frame_model_no, COUNT(*) OVER() as total_count 
+      SELECT fv.*, f.name as frame_name, f.model_no as frame_model_no, f.selling_price as price, COUNT(*) OVER() as total_count 
       FROM frame_variants fv
       LEFT JOIN frame f ON fv.frame_id = f.id
       ${whereClause} 
@@ -128,7 +128,7 @@ class FrameVariantRepository {
 
   async getById(db, id, tenantId = null) {
     let queryText = `
-      SELECT fv.*, f.name as frame_name, f.model_no as frame_model_no
+      SELECT fv.*, f.name as frame_name, f.model_no as frame_model_no, f.selling_price as price
       FROM frame_variants fv
       LEFT JOIN frame f ON fv.frame_id = f.id
       WHERE fv.id = $1

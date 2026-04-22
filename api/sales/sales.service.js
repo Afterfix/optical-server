@@ -25,45 +25,45 @@ class SalesService {
     const processedItems = [];
 
     for (const item of items) {
-      let dbItem = null;
-      let type = null;
+      let frameData = null;
+      let lensData = null;
+      let addonData = null;
 
       if (item.frame_variant_id) {
-        dbItem = await this.frameVariantRepository.getById(
-          db,
-          item.frame_variant_id,
-          tenantId,
-        );
-        type = "FRAME";
-      } else if (item.lens_id) {
-        dbItem = await this.lensesRepository.getById(db, item.lens_id, tenantId);
-        type = "LENS";
-      } else if (item.lens_addon_id) {
-        dbItem = await this.lensAddonsRepository.getById(
-          db,
-          item.lens_addon_id,
-          tenantId,
-        );
-        type = "ADDON";
+        frameData = await this.frameVariantRepository.getById(db, item.frame_variant_id, tenantId);
+        if (!frameData) throw new Error(`Frame variant ${item.frame_variant_id} not found`);
+        
+        // Check stock only for frames
+        if (frameData.stock_qty < item.quantity) {
+          throw new Error(`Not enough stock for frame: ${frameData.frame_name || frameData.sku}.`);
+        }
       }
 
-      if (!dbItem) {
-        throw new Error(
-          `Item not found for the provided ID in tenant ${tenantId}`,
-        );
+      if (item.lens_id) {
+        lensData = await this.lensesRepository.getById(db, item.lens_id, tenantId);
+        if (!lensData) throw new Error(`Lens ${item.lens_id} not found`);
       }
 
-      // Check stock only for frames
-      if (type === "FRAME" && dbItem.stock_qty < item.quantity) {
-        throw new Error(
-          `Not enough stock for frame: ${dbItem.frame_name || dbItem.sku}.`,
-        );
+      if (item.lens_addon_id) {
+        addonData = await this.lensAddonsRepository.getById(db, item.lens_addon_id, tenantId);
+        if (!addonData) throw new Error(`Lens Addon ${item.lens_addon_id} not found`);
       }
 
-      const basePrice = item.quantity * item.unit_price;
-      // Tax logic might need adjustment if tax isn't on all tables, 
-      // but assuming 0 if missing for now.
-      const taxRate = parseFloat(dbItem.tax || 0);
+      // If absolutely nothing is selected in the row, we might want to skip or throw
+      if (!frameData && !lensData && !addonData) {
+        throw new Error("Each assembly item must have at least a Frame, Lens, or Addon");
+      }
+
+      const quantity = parseFloat(item.quantity) || 1;
+      const fPrice = parseFloat(item.frame_price) || 0;
+      const lPrice = parseFloat(item.lens_price) || 0;
+      const aPrice = parseFloat(item.addon_price) || 0;
+
+      const basePrice = quantity * (fPrice + lPrice + aPrice);
+      
+      // Combined tax logic - taking max tax rate from available components or sum? 
+      // Usually, it's per item. If they are in one row, we can take the frame's tax or a default.
+      const taxRate = parseFloat(frameData?.tax || lensData?.tax || addonData?.tax || 0);
       const taxAmount = (basePrice * taxRate) / 100;
       const totalPrice = basePrice + taxAmount;
 
