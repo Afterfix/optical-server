@@ -134,19 +134,52 @@ class DashboardRepository {
   }
 
   async getStockAlerts(db, tenantId) {
-    const query = `
+    const framesQuery = `
       SELECT 
         f.name || ' (' || fv.color || ' ' || fv.size || ')' as product,
         fv.stock_qty as quantity,
-        fv.sku as code
+        fv.sku as code,
+        'frame' as type
       FROM frame_variants fv
       JOIN frame f ON fv.frame_id = f.id
-      WHERE fv.tenant_id = $1 AND fv.stock_qty < 5
-      ORDER BY fv.stock_qty ASC
-      LIMIT 5
+      WHERE fv.tenant_id = $1
+      ORDER BY fv.created_at DESC
+      LIMIT 10
     `;
-    const { rows } = await db.query(query, [tenantId]);
-    return rows;
+    const lensesQuery = `
+      SELECT 
+        name as product,
+        stock as quantity,
+        'LENS-' || id as code,
+        'lens' as type
+      FROM lenses
+      WHERE tenant_id = $1
+      ORDER BY created_at DESC
+      LIMIT 10
+    `;
+    const addonsQuery = `
+      SELECT 
+        name as product,
+        stock as quantity,
+        'ADDON-' || id as code,
+        'addon' as type
+      FROM lens_addons
+      WHERE tenant_id = $1
+      ORDER BY created_at DESC
+      LIMIT 10
+    `;
+
+    const [frames, lenses, addons] = await Promise.all([
+      db.query(framesQuery, [tenantId]),
+      db.query(lensesQuery, [tenantId]),
+      db.query(addonsQuery, [tenantId])
+    ]);
+
+    return {
+      frames: frames.rows,
+      lenses: lenses.rows,
+      addons: addons.rows
+    };
   }
 
   async getRecentSales(db, tenantId) {

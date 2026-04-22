@@ -104,12 +104,12 @@ class LensAddonsRepository {
   }
 
   async create(db, data) {
-    const { tenant_id, name, price } = data;
+    const { tenant_id, name, price, stock = 0 } = data;
     const { rows } = await db.query(
-      `INSERT INTO lens_addons (tenant_id, name, price)
-       VALUES ($1, $2, $3)
+      `INSERT INTO lens_addons (tenant_id, name, price, stock)
+       VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [tenant_id, name, price],
+      [tenant_id, name, price, stock],
     );
     return rows[0];
   }
