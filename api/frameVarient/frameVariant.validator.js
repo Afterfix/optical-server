@@ -13,9 +13,14 @@ class FrameVariantValidator {
         .status(400)
         .json({ error: "Missing required fields: frame_id and sku" });
     }
+    
+    req.body.frame_id = Number(req.body.frame_id);
 
-    if (req.body.stock_qty && !Number.isInteger(req.body.stock_qty)) {
-      return res.status(400).json({ error: "stock_qty must be an integer" });
+    if (req.body.stock_qty !== undefined) {
+      req.body.stock_qty = Number(req.body.stock_qty);
+      if (!Number.isInteger(req.body.stock_qty)) {
+        return res.status(400).json({ error: "stock_qty must be an integer" });
+      }
     }
 
     next();
@@ -26,6 +31,16 @@ class FrameVariantValidator {
       return res
         .status(400)
         .json({ error: "At least one field must be provided for update." });
+    }
+
+    if (req.body.stock_qty !== undefined) {
+      req.body.stock_qty = Number(req.body.stock_qty);
+      if (!Number.isInteger(req.body.stock_qty)) {
+        return res.status(400).json({ error: "stock_qty must be an integer" });
+      }
+    }
+    if (req.body.frame_id !== undefined) {
+      req.body.frame_id = Number(req.body.frame_id);
     }
     next();
   };
