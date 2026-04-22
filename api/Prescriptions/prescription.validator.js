@@ -1,11 +1,25 @@
 class PrescriptionValidator {
   createValidator(req, res, next) {
-    // Add validation logic for creating a prescription
+    if (
+      req.body.prescription_date &&
+      isNaN(Date.parse(req.body.prescription_date))
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Invalid date format for prescription_date" });
+    }
     next();
   }
 
   updateValidator(req, res, next) {
-    // Add validation logic for updating a prescription
+    if (
+      req.body.prescription_date &&
+      isNaN(Date.parse(req.body.prescription_date))
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Invalid date format for prescription_date" });
+    }
     next();
   }
 }
