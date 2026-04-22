@@ -18,12 +18,16 @@ class PrintSettingsService {
     return url;
   }
 
-  /** Build proxy path for image so frontend can load via API (avoids nginx/CORS for /uploads). */
-  _proxyPath(tenantId, url, subfolder = 'image') {
+  /** Build a clean /uploads/... path that the frontend can use directly. */
+  _proxyPath(tenantId, url) {
     if (!url || typeof url !== 'string') return null;
-    const m = url.match(/\/inventoryx\/\d+\/print\/(?:image|qr)\/([^/]+)$/);
-    if (!m) return null;
-    return `/api/inventoryx/print/${subfolder}/${tenantId}/${m[1]}`;
+    // Normalize: strip any leading slashes first
+    let clean = url.replace(/^\/+/, '');
+    // Accepted format: uploads/{tenantId}/print/{filename}
+    if (clean.startsWith(`uploads/${tenantId}/print/`) || clean.startsWith(`uploads/`)) {
+      return `/${clean}`;
+    }
+    return null;
   }
 
   async getSettings(db, tenantId) {
@@ -31,9 +35,10 @@ class PrintSettingsService {
     if (settings) {
       if (settings.header_image_url) settings.header_image_url = this._normalizeImageUrl(settings.header_image_url);
       if (settings.qr_image_url) settings.qr_image_url = this._normalizeImageUrl(settings.qr_image_url);
-      if (settings.header_image_url) settings.header_image_proxy_path = this._proxyPath(tenantId, settings.header_image_url, 'image');
-      if (settings.qr_image_url) settings.qr_image_proxy_path = this._proxyPath(tenantId, settings.qr_image_url, 'qr');
+      if (settings.header_image_url) settings.header_image_proxy_path = this._proxyPath(tenantId, settings.header_image_url);
+      if (settings.qr_image_url) settings.qr_image_proxy_path = this._proxyPath(tenantId, settings.qr_image_url);
       return settings;
+
     }
     // Return default settings if none exist
     return { tenant_id: tenantId /* ... your other defaults */ };

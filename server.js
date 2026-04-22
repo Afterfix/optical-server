@@ -44,10 +44,15 @@ const printSettingsRoutes = require("./api/printSettings/printSettings.routes");
 
 const db = require("./config/db");
 
+const path = require('path');
+
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Serve uploaded files (company logos, QR codes, etc.) from /uploads/
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Attach DB to request object
 app.use((req, res, next) => {
