@@ -35,6 +35,8 @@ const modeofpaymentRoutes = require("./api/modeOfPayment/modeOfPayment.routes");
 const invoiceNumberRoutes = require("./api/invoiceNumber/invoiceNumber.routes");
 const reportFieldPermissionsRoutes = require("./api/reportFieldPermissions/reportFieldPermissions.routes");
 const transactionFieldPermissionsRoutes = require("./api/transactionFieldPermissions/transactionFieldPermissions.routes");
+const purchaseRoutes = require("./api/purchase/purchase.routes");
+
 
 const salesRoutes = require("./api/sales/sales.routes");
 
@@ -84,6 +86,9 @@ app.use("/api/mode-of-payment", modeofpaymentRoutes);
 app.use("/api/invoice-number", invoiceNumberRoutes);
 app.use("/api/report-field-permissions", reportFieldPermissionsRoutes);
 app.use("/api/transaction-field-permissions", transactionFieldPermissionsRoutes);
+app.use("/api/purchases",purchaseRoutes);
+
+
 
 app.use("/api/sales", salesRoutes);
 

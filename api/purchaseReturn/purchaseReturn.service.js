@@ -72,11 +72,11 @@ class PurchaseReturnService {
       );
 
       if (newPurchaseReturn.frame_variant_id) {
-        await this.frameVariantRepository.updateStock(
-          client,
-          newPurchaseReturn.frame_variant_id,
-          -newPurchaseReturn.return_quantity,
-        );
+        await this.frameVariantRepository.updateStock(client, newPurchaseReturn.frame_variant_id, -newPurchaseReturn.return_quantity);
+      } else if (newPurchaseReturn.lens_id) {
+        await this.lensesRepository.updateStock(client, newPurchaseReturn.lens_id, -newPurchaseReturn.return_quantity);
+      } else if (newPurchaseReturn.lens_addon_id) {
+        await this.lensAddonsRepository.updateStock(client, newPurchaseReturn.lens_addon_id, -newPurchaseReturn.return_quantity);
       }
 
       await client.query("COMMIT");
@@ -186,11 +186,11 @@ class PurchaseReturnService {
         existingReturn.return_quantity - returnData.return_quantity;
       if (quantityDifference !== 0) {
           if (existingReturn.frame_variant_id) {
-              await this.frameVariantRepository.updateStock(
-                  client,
-                  existingReturn.frame_variant_id,
-                  quantityDifference,
-                );
+              await this.frameVariantRepository.updateStock(client, existingReturn.frame_variant_id, quantityDifference);
+          } else if (existingReturn.lens_id) {
+              await this.lensesRepository.updateStock(client, existingReturn.lens_id, quantityDifference);
+          } else if (existingReturn.lens_addon_id) {
+              await this.lensAddonsRepository.updateStock(client, existingReturn.lens_addon_id, quantityDifference);
           }
         await this.purchaseRepository.increaseItemQuantity(
           client,
@@ -249,11 +249,11 @@ class PurchaseReturnService {
       const itemId = returnToDelete.frame_variant_id || returnToDelete.lens_id || returnToDelete.lens_addon_id;
 
       if (returnToDelete.frame_variant_id) {
-          await this.frameVariantRepository.updateStock(
-              client,
-              returnToDelete.frame_variant_id,
-              returnToDelete.return_quantity,
-            );
+          await this.frameVariantRepository.updateStock(client, returnToDelete.frame_variant_id, returnToDelete.return_quantity);
+      } else if (returnToDelete.lens_id) {
+          await this.lensesRepository.updateStock(client, returnToDelete.lens_id, returnToDelete.return_quantity);
+      } else if (returnToDelete.lens_addon_id) {
+          await this.lensAddonsRepository.updateStock(client, returnToDelete.lens_addon_id, returnToDelete.return_quantity);
       }
       await this.purchaseRepository.increaseItemQuantity(
         client,

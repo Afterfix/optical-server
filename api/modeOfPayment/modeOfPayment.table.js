@@ -16,6 +16,7 @@ module.exports = async (client) => {
             name VARCHAR(255) NOT NULL,
             done_by_id INTEGER REFERENCES "done_by"(id) ON DELETE SET NULL,
             cost_center_id INTEGER REFERENCES "cost_center"(id) ON DELETE SET NULL,
+            default_ledger_id INTEGER REFERENCES "ledger"(id) ON DELETE SET NULL,
             UNIQUE (tenant_id, name)
         );
       `)
@@ -33,6 +34,13 @@ module.exports = async (client) => {
       )
       console.log('✅ Indexes for "mode_of_payment" table have been created.')
     }
+
+    // Apply migration: add default_ledger_id if not exists
+    await client.query(`
+      ALTER TABLE mode_of_payment
+      ADD COLUMN IF NOT EXISTS default_ledger_id INTEGER REFERENCES "ledger"(id) ON DELETE SET NULL;
+    `);
+    console.log('✅ mode_of_payment.default_ledger_id column ensured.');
   } catch (err) {
     console.error('❌ Failed to create "mode_of_payment" table:', err.message)
     throw err

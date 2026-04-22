@@ -61,10 +61,14 @@ class PurchaseService {
       itemsWithDetails,
     );
 
-    // Update Stock for Frames
+    // Update Stock for all item types
     for (const item of itemsWithDetails) {
       if (item.frame_variant_id) {
         await this.frameVariantRepository.updateStock(db, item.frame_variant_id, item.quantity);
+      } else if (item.lens_id) {
+        await this.lensesRepository.updateStock(db, item.lens_id, item.quantity);
+      } else if (item.lens_addon_id) {
+        await this.lensAddonsRepository.updateStock(db, item.lens_addon_id, item.quantity);
       }
     }
 
@@ -135,20 +139,28 @@ class PurchaseService {
       }
     }
 
-    // Calculate Stock Differences for Frames
-    const stockAdjustments = new Map();
+    // Calculate Stock Differences for all types
+    const frameAdjustments = new Map();
+    const lensAdjustments = new Map();
+    const addonAdjustments = new Map();
     
     (originalPurchase.items || []).forEach(item => {
         if (item.frame_variant_id) {
-            const key = item.frame_variant_id;
-            stockAdjustments.set(key, (stockAdjustments.get(key) || 0) - item.quantity);
+            frameAdjustments.set(item.frame_variant_id, (frameAdjustments.get(item.frame_variant_id) || 0) - item.quantity);
+        } else if (item.lens_id) {
+            lensAdjustments.set(item.lens_id, (lensAdjustments.get(item.lens_id) || 0) - item.quantity);
+        } else if (item.lens_addon_id) {
+            addonAdjustments.set(item.lens_addon_id, (addonAdjustments.get(item.lens_addon_id) || 0) - item.quantity);
         }
     });
 
     (itemsWithDetails || []).forEach(item => {
         if (item.frame_variant_id) {
-            const key = item.frame_variant_id;
-            stockAdjustments.set(key, (stockAdjustments.get(key) || 0) + item.quantity);
+            frameAdjustments.set(item.frame_variant_id, (frameAdjustments.get(item.frame_variant_id) || 0) + item.quantity);
+        } else if (item.lens_id) {
+            lensAdjustments.set(item.lens_id, (lensAdjustments.get(item.lens_id) || 0) + item.quantity);
+        } else if (item.lens_addon_id) {
+            addonAdjustments.set(item.lens_addon_id, (addonAdjustments.get(item.lens_addon_id) || 0) + item.quantity);
         }
     });
 
@@ -171,10 +183,14 @@ class PurchaseService {
       throw new Error("Failed to update the purchase.");
     }
 
-    for (const [frameVariantId, quantityChange] of stockAdjustments.entries()) {
-      if (quantityChange !== 0) {
-        await this.frameVariantRepository.updateStock(db, frameVariantId, quantityChange);
-      }
+    for (const [id, change] of frameAdjustments.entries()) {
+      if (change !== 0) await this.frameVariantRepository.updateStock(db, id, change);
+    }
+    for (const [id, change] of lensAdjustments.entries()) {
+      if (change !== 0) await this.lensesRepository.updateStock(db, id, change);
+    }
+    for (const [id, change] of addonAdjustments.entries()) {
+      if (change !== 0) await this.lensAddonsRepository.updateStock(db, id, change);
     }
 
     if (updatedPurchase && validIncomingPayments.length > 0) {
@@ -280,11 +296,11 @@ class PurchaseService {
       if (Array.isArray(purchaseToDelete.items)) {
         for (const item of purchaseToDelete.items) {
           if (item.frame_variant_id) {
-            await this.frameVariantRepository.updateStock(
-              client,
-              item.frame_variant_id,
-              -item.quantity,
-            );
+            await this.frameVariantRepository.updateStock(client, item.frame_variant_id, -item.quantity);
+          } else if (item.lens_id) {
+            await this.lensesRepository.updateStock(client, item.lens_id, -item.quantity);
+          } else if (item.lens_addon_id) {
+            await this.lensAddonsRepository.updateStock(client, item.lens_addon_id, -item.quantity);
           }
         }
       }

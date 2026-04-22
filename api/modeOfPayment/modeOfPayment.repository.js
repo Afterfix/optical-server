@@ -1,11 +1,11 @@
 class ModeOfPaymentRepository {
   async create(db, modeOfPaymentData) {
-    const { tenant_id, name, done_by_id, cost_center_id } = modeOfPaymentData;
+    const { tenant_id, name, done_by_id, cost_center_id, default_ledger_id } = modeOfPaymentData;
     const { rows } = await db.query(
-      `INSERT INTO mode_of_payment (tenant_id, name, done_by_id, cost_center_id)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO mode_of_payment (tenant_id, name, done_by_id, cost_center_id, default_ledger_id)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [tenant_id, name, done_by_id, cost_center_id],
+      [tenant_id, name, done_by_id, cost_center_id, default_ledger_id || null],
     );
     return rows[0];
   }
@@ -17,10 +17,12 @@ class ModeOfPaymentRepository {
       SELECT 
         mop.*, 
         db.name as done_by_name, 
-        cc.name as cost_center_name 
+        cc.name as cost_center_name,
+        l.name as default_ledger_name
       FROM mode_of_payment mop 
       LEFT JOIN "done_by" db ON mop.done_by_id = db.id 
       LEFT JOIN "cost_center" cc ON mop.cost_center_id = cc.id 
+      LEFT JOIN "ledger" l ON mop.default_ledger_id = l.id
     `;
 
     const params = [];
@@ -111,7 +113,7 @@ class ModeOfPaymentRepository {
   }
 
   async getById(db, id, tenantId) {
-    const query = `SELECT mop.*, db.name as done_by_name, cc.name as cost_center_name FROM mode_of_payment mop LEFT JOIN "done_by" db ON mop.done_by_id = db.id LEFT JOIN "cost_center" cc ON mop.cost_center_id = cc.id WHERE mop.id = $1 AND mop.tenant_id = $2`;
+    const query = `SELECT mop.*, db.name as done_by_name, cc.name as cost_center_name, l.name as default_ledger_name FROM mode_of_payment mop LEFT JOIN "done_by" db ON mop.done_by_id = db.id LEFT JOIN "cost_center" cc ON mop.cost_center_id = cc.id LEFT JOIN "ledger" l ON mop.default_ledger_id = l.id WHERE mop.id = $1 AND mop.tenant_id = $2`;
     const { rows } = await db.query(query, [id, tenantId]);
     return rows[0];
   }
@@ -123,6 +125,8 @@ class ModeOfPaymentRepository {
       fieldsToUpdate.done_by_id = data.done_by_id;
     if (data.cost_center_id !== undefined)
       fieldsToUpdate.cost_center_id = data.cost_center_id;
+    if (data.default_ledger_id !== undefined)
+      fieldsToUpdate.default_ledger_id = data.default_ledger_id;
 
     const fields = Object.keys(fieldsToUpdate);
     if (fields.length === 0) return this.getById(db, id, tenantId);

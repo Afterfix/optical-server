@@ -5,10 +5,21 @@ class LedgerService {
 
   async create(ledgerData, db) {
     try {
-      const newLedger = await this.ledgerRepository.create(db, ledgerData);
+      const { party_id, ...data } = ledgerData;
+      const newLedger = await this.ledgerRepository.create(db, data);
       if (!newLedger) {
         throw new Error("Failed to create ledger.");
       }
+
+      if (party_id) {
+        await this.ledgerRepository.linkToParty(
+          db,
+          newLedger.id,
+          party_id,
+          data.tenant_id,
+        );
+      }
+
       return {
         status: "success",
         data: newLedger,

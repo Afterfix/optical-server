@@ -2,21 +2,14 @@ class PurchaseReturnValidator {
   createValidator = (req, res, next) => {
     const requiredFields = [
       "purchase_id",
-      "item_id",
       "return_quantity",
       "invoice_number",
       "payment_methods",
     ];
 
-    const missingFields = requiredFields.filter(
-      (field) => req.body[field] === undefined || req.body[field] === null
-    );
-    if (missingFields.length > 0) {
-      return res
-        .status(400)
-        .json({
-          error: `Missing required fields: ${missingFields.join(", ")}`,
-        });
+    const hasOpticalId = req.body.frame_variant_id || req.body.lens_id || req.body.lens_addon_id;
+    if (!hasOpticalId) {
+      return res.status(400).json({ error: "One of frame_variant_id, lens_id, or lens_addon_id must be provided." });
     }
 
     // FIX: Add validation to ensure return_quantity is a positive integer.
