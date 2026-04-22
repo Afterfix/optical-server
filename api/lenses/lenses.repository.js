@@ -105,12 +105,12 @@ class LensesRepository {
   }
 
   async create(db, data) {
-    const { tenant_id, name, index_value, base_price } = data;
+    const { tenant_id, name, index_value, base_price, stock = 0 } = data;
     const { rows } = await db.query(
-      `INSERT INTO lenses (tenant_id, name, index_value, base_price)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO lenses (tenant_id, name, index_value, base_price, stock)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [tenant_id, name, index_value, base_price],
+      [tenant_id, name, index_value, base_price, stock],
     );
     return rows[0];
   }

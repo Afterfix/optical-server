@@ -7,8 +7,8 @@ class DashboardService {
     return await this.repo.getFinancialSummary(db, user.tenant_id, period);
   }
 
-  async getWeeklySalesPurchases(user, db) {
-    return await this.repo.getWeeklySalesPurchases(db, user.tenant_id);
+  async getWeeklySalesPurchases(user, db, period) {
+    return await this.repo.getWeeklySalesPurchases(db, user.tenant_id, period);
   }
 
   async getTopSellingProducts(user, db, period) {
@@ -21,6 +21,10 @@ class DashboardService {
 
   async getRecentSales(user, db) {
     return await this.repo.getRecentSales(db, user.tenant_id);
+  }
+
+  async getRecentPurchases(user, db) {
+    return await this.repo.getRecentPurchases(db, user.tenant_id);
   }
 }
 

@@ -85,6 +85,15 @@ class ServicesRepository {
 
     const { whereClause, sortClause, params, paramIndex } = this._buildQueryParts(tenantId, filters);
 
+    const aggregationQuery = `
+      SELECT 
+        SUM(COALESCE(s.service_charge, 0)) as total_charges,
+        SUM(COALESCE(s.cost, 0)) as total_costs
+      FROM services s
+      LEFT JOIN party p ON s.customer_id = p.id
+      ${whereClause}
+    `;
+
     let query = `
       SELECT s.*, p.name as customer_name, COUNT(*) OVER() as total_count 
       FROM services s
@@ -93,13 +102,24 @@ class ServicesRepository {
       ${sortClause} 
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
-    params.push(limit, offset);
+    const queryParams = [...params, limit, offset];
 
-    const { rows } = await this.db.query(query, params);
+    const [mainResult, aggResult] = await Promise.all([
+      this.db.query(query, queryParams),
+      this.db.query(aggregationQuery, params)
+    ]);
+
+    const { rows } = mainResult;
+    const aggData = aggResult.rows[0] || { total_charges: 0, total_costs: 0 };
     const totalCount = rows.length > 0 ? parseInt(rows[0].total_count, 10) : 0;
     const services = rows.map(({ total_count, ...rest }) => rest);
 
-    return { services, totalCount };
+    return { 
+      services, 
+      totalCount,
+      total_charges: parseFloat(aggData.total_charges || 0),
+      total_costs: parseFloat(aggData.total_costs || 0)
+    };
   }
 
   async create(dbOrClient, data) {

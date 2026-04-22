@@ -36,23 +36,19 @@ const createPartyTable = require("../../api/party/party.table.js");
 const createLedgerTable = require("../../api/ledger/ledger.table.js");
 const createVoucherTable = require("../../api/voucher/voucher.table.js");
 const createReportFieldPermissionsTable = require("../../api/reportFieldPermissions/reportFieldPermissions.table.js");
-const createVoucherTransactionTable = require("../../api/voucherTransaction/voucherTransaction.table.js");
 const createTrasactionLedgerTable = require("../../api/transactionLedger/transactionLedger.table.js");
 const createTransactionFieldPermissionsTable = require("../../api/transactionFieldPermissions/transactionFieldPermissions.table.js");
 const createTransactionTable = require("../../api/transaction/transaction.table.js");
 const createQueryTable = require("./tables/query.table.js");
 const createPrintSettingsTable = require("../../api/printSettings/printSettings.table.js");
+const createVoucherTransactionTable = require("../../api/voucherTransaction/voucherTransaction.table.js");
 
 const createTables = async () => {
   const client = await pool.connect();
   try {
     console.log("🚀 Starting database migration...");
 
-    
-    // await createQueryTable(client);
-
-    // Core tables
-
+ 
 
     await createTenantTable(client);
     await createRoleTable(client);
@@ -67,49 +63,36 @@ const createTables = async () => {
     await createFrameVariantTable(client);
     await createLensesTable(client);
     await createLensAddonsTable(client);
-
-    await createServicesTable(client);
-
-    await createInvoiceNumberTable(client);
-
-    await createTransactionTable(client);
-    await createTrasactionLedgerTable(client);
-
-    // // Setup tables
-    await createEmployeePositionTable(client);
-    await createEmployeeTable(client);
-    await createPartnerTable(client);
     await createLedgerTable(client);
     await createPartyTable(client);
+    await createServicesTable(client);
+    await createInvoiceNumberTable(client);
+    await createTransactionTable(client);
+    await createPartnerTable(client);
     await createAccountTable(client);
+    await createTrasactionLedgerTable(client);
+    await createEmployeePositionTable(client);
+    await createEmployeeTable(client);
     await createModeOfPaymentTable(client);
+    await createExpenseTypeTable(client);
+
     await createVoucherTable(client);
     await createVoucherTransactionTable(client);
     await createPayrollTable(client);
-
-    // // Business entities
     await createInvoiceNumberTable(client);
-
-    // // Expense
-    await createExpenseTypeTable(client);
     await createReportFieldPermissionsTable(client);
     await createTransactionFieldPermissionsTable(client);
     await createExpenseTable(client);
-    
-
-    // // Inventory
-
-    // // Transactions
     await createPurchaseTable(client);
     await createPurchaseItemTable(client);
     // await createPurchaseReturnTable(client);
-
     await createSalesTable(client);
     await createPrescriptionTable(client);
     await createSaleItemTable(client);
     await createPrintSettingsTable(client);
-
-    // await createSaleReturnTable(client);
+     // await createSaleReturnTable(client);
+    
+    await createQueryTable(client);
 
     console.log("✅ All tables created successfully in the correct order.");
   } catch (err) {
