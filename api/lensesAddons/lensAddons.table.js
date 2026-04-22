@@ -13,6 +13,7 @@ module.exports = async (client) => {
           tenant_id INTEGER REFERENCES "tenant"(id) ON DELETE CASCADE,
           name VARCHAR(100) NOT NULL, -- e.g., 'Anti-glare', 'Blue cut', 'UV'
           price NUMERIC(12, 2) DEFAULT 0,
+          stock NUMERIC(12, 2) DEFAULT 0,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
       `);
@@ -25,6 +26,17 @@ module.exports = async (client) => {
 
       console.log('✅ Indexes for "lens_addons" table created.');
     }
+
+    // Ensure 'stock' column exists for existing tables
+    await client.query(`
+      DO $$ 
+      BEGIN 
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='lens_addons' AND column_name='stock') THEN
+          ALTER TABLE lens_addons ADD COLUMN stock NUMERIC(12, 2) DEFAULT 0;
+        END IF;
+      END $$;
+    `);
+
   } catch (err) {
     console.error('❌ Error creating/updating "lens_addons" table:', err.message);
     throw err;

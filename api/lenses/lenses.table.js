@@ -16,6 +16,7 @@ module.exports = async (client) => {
           name VARCHAR(100) NOT NULL, -- e.g., 'Single Vision', 'Progressive'
           index_value NUMERIC(4, 2) NOT NULL,  -- e.g., 1.50, 1.60, 1.67
           base_price NUMERIC(12, 2) DEFAULT 0 NOT NULL,
+          stock NUMERIC(12, 2) DEFAULT 0,
           
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
@@ -32,6 +33,17 @@ module.exports = async (client) => {
 
       console.log('✅ Indexes for "lenses" table created.');
     }
+
+    // Ensure 'stock' column exists for existing tables
+    await client.query(`
+      DO $$ 
+      BEGIN 
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='lenses' AND column_name='stock') THEN
+          ALTER TABLE lenses ADD COLUMN stock NUMERIC(12, 2) DEFAULT 0;
+        END IF;
+      END $$;
+    `);
+
   } catch (err) {
     console.error('❌ Error creating/updating "lenses" table:', err.message);
     throw err;
