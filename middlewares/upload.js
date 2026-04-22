@@ -51,8 +51,59 @@ const deleteItemImageDirectory = async (userId, itemId) => {
   }
 };
 
+const movePrintHeaderImage = async (file, tenantId) => {
+  if (!file || !tenantId) return null;
+  const finalDirectory = path.join(__dirname, "..", "uploads", String(tenantId), "print");
+  await fs.mkdir(finalDirectory, { recursive: true });
+  const newPath = path.join(finalDirectory, file.filename);
+  const oldPath = file.path;
+  try {
+    await fs.rename(oldPath, newPath);
+    return path.join("uploads", String(tenantId), "print", file.filename).replace(/\\/g, "/");
+  } catch (error) {
+    console.error("Error moving print header image:", error);
+    try { await fs.unlink(oldPath); } catch (e) {}
+    return null;
+  }
+};
+
+const movePrintQrImage = async (file, tenantId) => {
+  if (!file || !tenantId) return null;
+  const finalDirectory = path.join(__dirname, "..", "uploads", String(tenantId), "print");
+  await fs.mkdir(finalDirectory, { recursive: true });
+  const newPath = path.join(finalDirectory, file.filename);
+  const oldPath = file.path;
+  try {
+    await fs.rename(oldPath, newPath);
+    return path.join("uploads", String(tenantId), "print", file.filename).replace(/\\/g, "/");
+  } catch (error) {
+    console.error("Error moving print QR image:", error);
+    try { await fs.unlink(oldPath); } catch (e) {}
+    return null;
+  }
+};
+
+const deletePrintImageFile = async (relativeFilePath) => {
+  if (!relativeFilePath) return;
+  try {
+    // Assuming relativeFilePath is like "uploads/..." or "/uploads/..."
+    const cleanPath = relativeFilePath.startsWith("/") 
+      ? relativeFilePath.substring(1) 
+      : relativeFilePath;
+    const fullPath = path.join(__dirname, "..", cleanPath);
+    await fs.unlink(fullPath);
+  } catch (err) {
+    if (err.code !== "ENOENT") {
+      console.error(`Failed to delete file ${relativeFilePath}:`, err);
+    }
+  }
+};
+
 module.exports = {
   upload,
   moveItemImage,
   deleteItemImageDirectory,
+  movePrintHeaderImage,
+  movePrintQrImage,
+  deletePrintImageFile,
 };

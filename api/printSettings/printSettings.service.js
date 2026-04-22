@@ -2,7 +2,7 @@ const {
   movePrintHeaderImage,
   movePrintQrImage,
   deletePrintImageFile // <-- Import the new delete function
-} = require('../../../apps/gadgetx/middlewares/upload');
+} = require('../../middlewares/upload');
 
 class PrintSettingsService {
   constructor(repository) {
