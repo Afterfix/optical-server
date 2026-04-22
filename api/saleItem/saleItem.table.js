@@ -16,7 +16,7 @@ module.exports = async (client) => {
           sales_id INTEGER NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
           frame_variant_id INTEGER REFERENCES frame_variants(id) ON DELETE SET NULL,
           lens_id INTEGER REFERENCES lenses(id) ON DELETE SET NULL,
-          prescription_id INTEGER REFERENCES prescriptions(id) ON DELETE SET NULL,
+          prescription_id INTEGER REFERENCES prescription(id) ON DELETE SET NULL,
           lens_addon_id INTEGER REFERENCES lens_addons(id) ON DELETE SET NULL,
           quantity INTEGER NOT NULL DEFAULT 1,
           frame_price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
