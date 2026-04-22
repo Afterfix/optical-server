@@ -23,8 +23,7 @@ module.exports = async (client) => {
           id SERIAL PRIMARY KEY,
           customer_id INTEGER REFERENCES party(id) ON DELETE CASCADE,
           tenant_id INTEGER REFERENCES tenant(id) ON DELETE CASCADE,
-          
-          -- Prescription Values
+          prescription_date DATE DEFAULT CURRENT_DATE,
           right_sph DECIMAL(6, 2),
           right_cyl DECIMAL(6, 2),
           right_axis DECIMAL(6, 2),
@@ -35,7 +34,6 @@ module.exports = async (client) => {
           left_axis DECIMAL(6, 2),
           left_add DECIMAL(6, 2),
           left_ipd DECIMAL(6, 2),
-          
           doctor_name VARCHAR(255),
           remarks TEXT,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP

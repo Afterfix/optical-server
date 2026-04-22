@@ -1,5 +1,4 @@
-
-const { movePrintHeaderImage, movePrintQrImage, deletePrintImageFile } = require('../../../apps/gadgetx/middlewares/upload');
+const { movePrintHeaderImage, movePrintQrImage, deletePrintImageFile } = require('../../middlewares/upload');
 
 class PrintSettingsController {
   constructor(service) {
