@@ -38,28 +38,20 @@ class PartyService {
     try {
       // 1. Try to create the Ledger first
       if (this.ledgerService) {
-        try {
-          const ledgerName = `${partyData.name} - ${partyData.type.toUpperCase()}`;
-          const ledgerData = {
-            tenant_id: user.tenant_id,
-            name: ledgerName,
-            balance: 0.0,
-            done_by_id: partyData.done_by_id,
-            cost_center_id: partyData.cost_center_id,
-          };
+        const ledgerName = `${partyData.name} - ${partyData.type.toUpperCase()}`;
+        const ledgerData = {
+          tenant_id: user.tenant_id,
+          name: ledgerName,
+          balance: 0.0,
+          done_by_id: partyData.done_by_id,
+          cost_center_id: partyData.cost_center_id,
+        };
 
-          const newLedgerResponse = await this.ledgerService.create(
-            ledgerData,
-            user,
-            db,
-          );
-          ledgerId = newLedgerResponse?.data?.id || newLedgerResponse?.id;
-        } catch (ledgerErr) {
-          console.error(
-            "Ledger creation failed, but continuing with Party:",
-            ledgerErr.message,
-          );
-        }
+        const newLedgerResponse = await this.ledgerService.create(
+          ledgerData,
+          db,
+        );
+        ledgerId = newLedgerResponse?.data?.id || newLedgerResponse?.id;
       }
 
       // 2. Prepare data for the Party
