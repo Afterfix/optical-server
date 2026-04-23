@@ -42,6 +42,9 @@ const createTransactionTable = require("../../api/transaction/transaction.table.
 const createQueryTable = require("./tables/query.table.js");
 const createPrintSettingsTable = require("../../api/printSettings/printSettings.table.js");
 const createVoucherTransactionTable = require("../../api/voucherTransaction/voucherTransaction.table.js");
+const createCustomPagesTable = require("../../api/customPages/customPages.table.js");
+const createCustomPageDataTable = require("../../api/customPageData/customPageData.table.js");
+
 const createCategoryCustomFieldsTable = require("../../api/categoryCustomFields/categoryCustomFields.table.js");
 const createItemTable = require("../../api/item/item.table.js");
 const createItemCustomFieldsTable = require("../../api/itemCustomFieldValues/itemCustomFieldValues.table.js");
@@ -95,6 +98,11 @@ const createTables = async () => {
     await createPrescriptionTable(client);
     await createSaleItemTable(client);
     await createPrintSettingsTable(client);
+     // await createSaleReturnTable(client);
+    
+    // await createQueryTable(client);
+    await createCustomPagesTable(client);
+    await createCustomPageDataTable(client);
     // await createSaleReturnTable(client);
 
     console.log("✅ All tables created successfully in the correct order.");
