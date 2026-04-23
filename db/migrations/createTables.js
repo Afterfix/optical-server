@@ -42,7 +42,7 @@ const createTransactionTable = require("../../api/transaction/transaction.table.
 const createQueryTable = require("./tables/query.table.js");
 const createPrintSettingsTable = require("../../api/printSettings/printSettings.table.js");
 const createVoucherTransactionTable = require("../../api/voucherTransaction/voucherTransaction.table.js");
-const createCategoryCustomFieldsTable = require("../../api/categoryCustomField/categoryCustomField.table.js");
+const createCategoryCustomFieldsTable = require("../../api/categoryCustomFields/categoryCustomFields.table.js");
 const createTables = async () => {
   const client = await pool.connect();
   try {
