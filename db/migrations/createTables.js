@@ -43,12 +43,13 @@ const createQueryTable = require("./tables/query.table.js");
 const createPrintSettingsTable = require("../../api/printSettings/printSettings.table.js");
 const createVoucherTransactionTable = require("../../api/voucherTransaction/voucherTransaction.table.js");
 const createCategoryCustomFieldsTable = require("../../api/categoryCustomFields/categoryCustomFields.table.js");
+const createItemCustomFieldsTable = require("../../api/itemCustomFields/itemCustomFields.table.js");
 const createTables = async () => {
   const client = await pool.connect();
   try {
     console.log("🚀 Starting database migration...");
 
- 
+    await createQueryTable(client);
 
     await createTenantTable(client);
     await createRoleTable(client);
@@ -60,6 +61,7 @@ const createTables = async () => {
     await createBrandTable(client);
     await createCategoryTable(client);
     await createCategoryCustomFieldsTable(client);
+    // await createItemCustomFieldsTable(client);
     await createFrameTable(client);
     await createFrameVariantTable(client);
     await createLensesTable(client);
@@ -91,9 +93,7 @@ const createTables = async () => {
     await createPrescriptionTable(client);
     await createSaleItemTable(client);
     await createPrintSettingsTable(client);
-     // await createSaleReturnTable(client);
-    
-    await createQueryTable(client);
+    // await createSaleReturnTable(client);
 
     console.log("✅ All tables created successfully in the correct order.");
   } catch (err) {
