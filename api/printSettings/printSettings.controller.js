@@ -34,8 +34,8 @@ class PrintSettingsController {
           
           const imagePath = await movePrintHeaderImage(req.files.header_image[0], req.user.tenant_id);
           if (imagePath) {
-            // Path is already /uploads/... — avoid // which browsers treat as protocol-relative URL
-            settingsData.header_image_url = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+            // Path is already /uploads/... or http://...
+            settingsData.header_image_url = imagePath.startsWith("http") ? imagePath : (imagePath.startsWith('/') ? imagePath : `/${imagePath}`);
           }
         }
 
@@ -48,7 +48,7 @@ class PrintSettingsController {
           
           const qrPath = await movePrintQrImage(req.files.qr_image[0], req.user.tenant_id);
           if (qrPath) {
-            settingsData.qr_image_url = qrPath.startsWith('/') ? qrPath : `/${qrPath}`;
+            settingsData.qr_image_url = qrPath.startsWith("http") ? qrPath : (qrPath.startsWith('/') ? qrPath : `/${qrPath}`);
           }
         }
       }
