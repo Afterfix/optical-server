@@ -4,74 +4,160 @@ class CategoryService {
     this.tenantRepository = tenantRepository;
   }
 
-  // ADDED: db param
+  // ✅ GET ALL
   async getAll(user, filters = {}, db) {
     let tenantId;
-    if (user.role === 'super_admin') {
+
+    if (user.role === "super_admin") {
       tenantId = filters.tenant_id || null;
     } else {
       tenantId = user.tenant_id;
     }
-    // Pass db to repo
-    return await this.categoryRepository.getAllByTenantId(db, tenantId, filters);
+
+    return await this.categoryRepository.getAllByTenantId(
+      db,
+      tenantId,
+      filters,
+    );
   }
 
-  // ADDED: db param
+  // ✅ CREATE CATEGORY WITH CUSTOM FIELDS
   async create(categoryData, user, db) {
-    let tenantIdForNewEntry;
-    if (user.role === 'super_admin') {
+    const { custom_fields, ...category } = categoryData;
+
+    const tenantId =
+      user.role === "super_admin" ? categoryData.tenant_id : user.tenant_id;
+
+    // 🔒 Validate tenant for super_admin
+    if (user.role === "super_admin") {
       if (!categoryData.tenant_id) {
-        const error = new Error("Super admin must specify a 'tenant_id' in the request body.");
-        error.statusCode = 400;
-        throw error;
+        throw new Error("tenant_id is required for super_admin");
       }
-      // Pass db to tenantRepo
-      const tenantExists = await this.tenantRepository.getById(db, categoryData.tenant_id);
+
+      const tenantExists = await this.tenantRepository.getById(
+        db,
+        categoryData.tenant_id,
+      );
       if (!tenantExists) {
-        const error = new Error(`Tenant with ID ${categoryData.tenant_id} not found.`);
-        error.statusCode = 404;
-        throw error;
+        throw new Error("Invalid tenant_id");
       }
-      tenantIdForNewEntry = categoryData.tenant_id;
-    } else {
-      tenantIdForNewEntry = user.tenant_id;
     }
 
-    const dataToSave = { ...categoryData, tenant_id: tenantIdForNewEntry };
-    // Pass db to repo
-    const data = await this.categoryRepository.create(db, dataToSave);
+    // 🔒 Validate custom fields
+    if (custom_fields) {
+      for (const field of custom_fields) {
+        if (!field.label || !field.type) {
+          throw new Error("Each custom field must have label and type");
+        }
+      }
+    }
+
+    // ✅ Create category
+    const createdCategory = await this.categoryRepository.create(db, {
+      ...category,
+      tenant_id: tenantId,
+    });
+
+    // ✅ Insert custom fields
+    if (custom_fields && custom_fields.length > 0) {
+      for (const field of custom_fields) {
+        await db.query(
+          `INSERT INTO category_custom_fields
+          (tenant_id, category_id, label, type, is_required)
+          VALUES ($1, $2, $3, $4, $5)`,
+          [
+            tenantId,
+            createdCategory.id,
+            field.label,
+            field.type,
+            field.is_required || false,
+          ],
+        );
+      }
+    }
+
     return {
-      status: 'success',
-      data,
+      status: "success",
+      data: createdCategory,
     };
   }
 
+  // ✅ GET CATEGORY WITH FIELDS
   async getById(id, user, db) {
-    const tenantId = user.role === 'super_admin' ? null : user.tenant_id;
+    const tenantId = user.role === "super_admin" ? null : user.tenant_id;
+
     return await this.categoryRepository.getById(db, id, tenantId);
   }
 
+  // ✅ UPDATE CATEGORY + CUSTOM FIELDS
   async update(id, categoryData, user, db) {
-    const { tenant_id, ...updateData } = categoryData;
-    const tenantIdToUpdate = user.role === 'super_admin' ? null : user.tenant_id;
+    const { tenant_id, custom_fields, ...updateData } = categoryData;
 
-    const updatedCategory = await this.categoryRepository.update(db, id, tenantIdToUpdate, updateData);
+    const tenantIdToUpdate =
+      user.role === "super_admin" ? null : user.tenant_id;
+
+    // ✅ Update category basic data
+    const updatedCategory = await this.categoryRepository.update(
+      db,
+      id,
+      tenantIdToUpdate,
+      updateData,
+    );
+
     if (!updatedCategory) {
-        throw new Error("Category not found or not authorized to update");
+      throw new Error("Category not found or not authorized to update");
     }
+
+    // 🔥 Handle custom fields update
+    if (custom_fields) {
+      // 🔒 Validate fields
+      for (const field of custom_fields) {
+        if (!field.label || !field.type) {
+          throw new Error("Each custom field must have label and type");
+        }
+      }
+
+      // 🧹 Remove old fields
+      await db.query(
+        `DELETE FROM category_custom_fields WHERE category_id = $1`,
+        [id],
+      );
+
+      // ➕ Insert new fields
+      for (const field of custom_fields) {
+        await db.query(
+          `INSERT INTO category_custom_fields
+          (tenant_id, category_id, label, type, is_required)
+          VALUES ($1, $2, $3, $4, $5)`,
+          [
+            user.tenant_id,
+            id,
+            field.label,
+            field.type,
+            field.is_required || false,
+          ],
+        );
+      }
+    }
+
     const data = await this.getById(id, user, db);
+
     return {
-      status: 'success',
+      status: "success",
       data,
     };
   }
 
+  // ✅ DELETE CATEGORY (FIELDS AUTO-DELETED via CASCADE)
   async delete(id, user, db) {
-    const tenantIdToDelete = user.role === 'super_admin' ? null : user.tenant_id;
+    const tenantIdToDelete =
+      user.role === "super_admin" ? null : user.tenant_id;
+
     const data = await this.categoryRepository.delete(db, id, tenantIdToDelete);
+
     return {
-      status: 'success',
-      data: data,
+      status: "success",
+      data,
     };
   }
 }

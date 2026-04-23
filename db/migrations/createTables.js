@@ -45,12 +45,15 @@ const createVoucherTransactionTable = require("../../api/voucherTransaction/vouc
 const createCustomPagesTable = require("../../api/customPages/customPages.table.js");
 const createCustomPageDataTable = require("../../api/customPageData/customPageData.table.js");
 
+const createCategoryCustomFieldsTable = require("../../api/categoryCustomFields/categoryCustomFields.table.js");
+const createItemTable = require("../../api/item/item.table.js");
+const createItemCustomFieldsTable = require("../../api/itemCustomFieldValues/itemCustomFieldValues.table.js");
 const createTables = async () => {
   const client = await pool.connect();
   try {
     console.log("🚀 Starting database migration...");
 
- 
+    await createQueryTable(client);
 
     await createTenantTable(client);
     await createRoleTable(client);
@@ -61,6 +64,9 @@ const createTables = async () => {
     await createCostCenterTable(client);
     await createBrandTable(client);
     await createCategoryTable(client);
+    await createCategoryCustomFieldsTable(client);
+    await createItemTable(client);
+    await createItemCustomFieldsTable(client);
     await createFrameTable(client);
     await createFrameVariantTable(client);
     await createLensesTable(client);
@@ -97,6 +103,7 @@ const createTables = async () => {
     // await createQueryTable(client);
     await createCustomPagesTable(client);
     await createCustomPageDataTable(client);
+    // await createSaleReturnTable(client);
 
     console.log("✅ All tables created successfully in the correct order.");
   } catch (err) {

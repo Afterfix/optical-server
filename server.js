@@ -43,6 +43,8 @@ const dashboardRoutes = require("./api/dashboard/dashboard.routes");
 const printSettingsRoutes = require("./api/printSettings/printSettings.routes");
 const customPagesRoutes = require("./api/customPages/customPages.routes");
 const customPageDataRoutes = require("./api/customPageData/customPageData.routes");
+const itemRoutes = require("./api/item/item.routes");
+
 const db = require("./config/db");
 
 const path = require('path');
@@ -104,6 +106,7 @@ app.use("/api/print-settings", printSettingsRoutes);
 app.use("/api/custom-pages", customPagesRoutes);
 app.use("/api/custom-page-data", customPageDataRoutes);
 
+app.use("/api/items", itemRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
