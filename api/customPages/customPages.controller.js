@@ -11,7 +11,9 @@ const createCustomPage = async (req, res) => {
 
 const getAllCustomPages = async (req, res) => {
   try {
-    const pages = await service.getAllCustomPages();
+    const userId = req.user?.id;
+    const role = req.user?.role;
+    const pages = await service.getAllCustomPages(userId, role);
     res.status(200).json({ success: true, data: pages });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -34,7 +36,9 @@ const getCustomPageByPath = async (req, res) => {
   try {
     // encodeURIComponent might be needed if path has slashes, but usually passed via query param or generic body
     const path = req.query.path || req.params.path;
-    const page = await service.getCustomPageByPath(path);
+    const userId = req.user?.id;
+    const role = req.user?.role;
+    const page = await service.getCustomPageByPath(path, userId, role);
     if (!page) {
       return res.status(404).json({ success: false, message: "Page not found" });
     }

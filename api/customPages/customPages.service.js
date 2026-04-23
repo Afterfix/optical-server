@@ -4,16 +4,16 @@ const createCustomPage = async (pageData) => {
   return await repository.createCustomPage(pageData);
 };
 
-const getAllCustomPages = async () => {
-  return await repository.getAllCustomPages();
+const getAllCustomPages = async (userId, role) => {
+  return await repository.getAllCustomPages(userId, role);
 };
 
 const getCustomPageById = async (id) => {
   return await repository.getCustomPageById(id);
 };
 
-const getCustomPageByPath = async (path) => {
-  return await repository.getCustomPageByPath(path);
+const getCustomPageByPath = async (path, userId, role) => {
+  return await repository.getCustomPageByPath(path, userId, role);
 };
 
 const updateCustomPage = async (id, pageData) => {

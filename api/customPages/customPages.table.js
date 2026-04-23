@@ -6,6 +6,7 @@ const createCustomPagesTable = async (client) => {
         title VARCHAR(255) NOT NULL,
         path VARCHAR(255) NOT NULL UNIQUE,
         table_config JSONB NOT NULL DEFAULT '[]',
+        assigned_users INTEGER[] DEFAULT '{}',
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
