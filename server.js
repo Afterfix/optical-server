@@ -41,6 +41,7 @@ const purchaseRoutes = require("./api/purchase/purchase.routes");
 const salesRoutes = require("./api/sales/sales.routes");
 const dashboardRoutes = require("./api/dashboard/dashboard.routes");
 const printSettingsRoutes = require("./api/printSettings/printSettings.routes");
+const itemRoutes = require("./api/item/item.routes");
 
 const db = require("./config/db");
 
@@ -100,8 +101,7 @@ app.use("/api/purchases",purchaseRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/print-settings", printSettingsRoutes);
-
-
+app.use("/api/items", itemRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
