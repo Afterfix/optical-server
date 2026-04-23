@@ -18,6 +18,7 @@ module.exports = async (client) => {
           color VARCHAR(50),
           size VARCHAR(50),
           sku VARCHAR(100) UNIQUE NOT NULL,
+          barcode VARCHAR(100),
           stock_qty INTEGER DEFAULT 0,
           image TEXT,
           
@@ -39,6 +40,9 @@ module.exports = async (client) => {
 
       console.log('✅ Indexes for "frame_variants" table created.');
     }
+
+  
+
   } catch (err) {
     console.error('❌ Error creating/updating "frame_variants" table:', err.message);
     throw err;

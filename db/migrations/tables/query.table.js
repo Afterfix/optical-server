@@ -2,6 +2,10 @@ module.exports = async (client) => {
   try {
     console.log("⏳ applying database updates...");
 
+    
+
+    await client.query(frametables);
+    console.log("✅ framevarinat table updated (barcode added).");
     await client.query(updateServicesTable);
     console.log("✅ Services table updated (item_name, charge, etc added).");
 
@@ -55,6 +59,16 @@ BEGIN
   END IF;
 END $$;
 `;
+
+const frametables=`
+      DO $$ 
+      BEGIN 
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='frame_variants' AND column_name='barcode') THEN
+          ALTER TABLE frame_variants ADD COLUMN barcode VARCHAR(100);
+        END IF;
+      END $$;
+    `;
+
 
 const dropalltables = `
 DO $$
