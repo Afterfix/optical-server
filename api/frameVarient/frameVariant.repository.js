@@ -116,12 +116,12 @@ class FrameVariantRepository {
   }
 
   async create(db, data) {
-    const { tenant_id, frame_id, color, size, sku, stock_qty, image } = data;
+    const { tenant_id, frame_id, color, size, sku, barcode, stock_qty, image } = data;
     const { rows } = await db.query(
-      `INSERT INTO frame_variants (tenant_id, frame_id, color, size, sku, stock_qty, image)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO frame_variants (tenant_id, frame_id, color, size, sku, barcode, stock_qty, image)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [tenant_id, frame_id, color, size, sku, stock_qty ?? 0, image ?? null],
+      [tenant_id, frame_id, color, size, sku, barcode || null, stock_qty ?? 0, image ?? null],
     );
     return rows[0];
   }
