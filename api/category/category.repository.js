@@ -126,11 +126,6 @@ AND ($2::int IS NULL OR c.tenant_id = $2)
 GROUP BY c.id;`;
     const params = [id, tenantId];
 
-    if (tenantId) {
-      query += " AND c.tenant_id = $2";
-      params.push(tenantId);
-    }
-
     const { rows } = await db.query(query, params);
     return rows[0];
   }
