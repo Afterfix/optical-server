@@ -55,7 +55,7 @@ class FrameVariantController {
             : req.user.tenant_id;
         const imagePath = await moveFrameVariantImage(req.file, tenantId);
         if (imagePath) {
-          data.image = imagePath.startsWith("/") ? imagePath : `/${imagePath}`;
+          data.image = imagePath.startsWith("http") ? imagePath : (imagePath.startsWith("/") ? imagePath : `/${imagePath}`);
         }
       }
 
@@ -82,7 +82,7 @@ class FrameVariantController {
         }
         const imagePath = await moveFrameVariantImage(req.file, req.user.tenant_id);
         if (imagePath) {
-          data.image = imagePath.startsWith("/") ? imagePath : `/${imagePath}`;
+          data.image = imagePath.startsWith("http") ? imagePath : (imagePath.startsWith("/") ? imagePath : `/${imagePath}`);
         }
       }
 
