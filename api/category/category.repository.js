@@ -5,7 +5,25 @@ class CategoryRepository {
   async getAllByTenantId(db, tenantId, filters = {}) {
     const { sort, searchType, searchKey, ...otherFilters } = filters;
     let query = `
-      SELECT c.*, db.name as done_by_name, cc.name as cost_center_name
+      SELECT 
+        c.*, 
+        db.name as done_by_name, 
+        cc.name as cost_center_name,
+        COALESCE(
+          (
+            SELECT json_agg(
+              json_build_object(
+                'id', cf.id,
+                'label', cf.label,
+                'type', cf.type,
+                'is_required', cf.is_required
+              )
+            )
+            FROM category_custom_fields cf
+            WHERE cf.category_id = c.id
+          ),
+          '[]'::json
+        ) AS custom_fields
       FROM "category" c
       LEFT JOIN "done_by" db ON c.done_by_id = db.id
       LEFT JOIN "cost_center" cc ON c.cost_center_id = cc.id
