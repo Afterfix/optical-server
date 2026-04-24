@@ -12,6 +12,12 @@ module.exports = async (client) => {
     await client.query(addFrameVariantImageColumn);
     console.log("✅ frame_variants table updated (image column ensured).");
 
+    await client.query(updatePurchaseItemTable);
+    console.log("✅ purchase_item table updated (added item_id).");
+
+    await client.query(removeOldPurchaseItemColumns);
+    console.log("✅ purchase_item table updated (removed frame_variant_id, lens_id, lens_addon_id).");
+
   } catch (e) {
     console.error("❌ An error occurred during migration:", e.message);
     throw e;
@@ -69,6 +75,29 @@ const frametables=`
       END $$;
     `;
 
+const updatePurchaseItemTable = `
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='purchase_item' AND column_name='item_id') THEN
+    ALTER TABLE purchase_item ADD COLUMN item_id INTEGER REFERENCES item(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+`;
+
+const removeOldPurchaseItemColumns = `
+DO $$ 
+BEGIN 
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='purchase_item' AND column_name='frame_variant_id') THEN
+    ALTER TABLE purchase_item DROP COLUMN frame_variant_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='purchase_item' AND column_name='lens_id') THEN
+    ALTER TABLE purchase_item DROP COLUMN lens_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='purchase_item' AND column_name='lens_addon_id') THEN
+    ALTER TABLE purchase_item DROP COLUMN lens_addon_id;
+  END IF;
+END $$;
+`;
 
 const dropalltables = `
 DO $$

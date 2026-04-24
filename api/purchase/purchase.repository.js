@@ -118,18 +118,13 @@ class PurchaseRepository {
            FROM (
              SELECT
                pi.id,
-               pi.frame_variant_id,
-               pi.lens_id,
-               pi.lens_addon_id,
-               COALESCE(f.name || ' (' || fv.sku || ')', l.name, la.name) as item_name,
+               pi.item_id,
+               i.name as item_name,
                pi.quantity,
                pi.unit_price,
                pi.total_price
              FROM purchase_item pi
-             LEFT JOIN frame_variants fv ON pi.frame_variant_id = fv.id
-             LEFT JOIN frame f ON fv.frame_id = f.id
-             LEFT JOIN lenses l ON pi.lens_id = l.id
-             LEFT JOIN lens_addons la ON pi.lens_addon_id = la.id
+             LEFT JOIN item i ON pi.item_id = i.id
              WHERE pi.purchase_id = p.id
            ) as pi_agg
          ) as items,
@@ -480,7 +475,7 @@ class PurchaseRepository {
       UPDATE purchase_item 
       SET quantity = quantity - $1 
       WHERE purchase_id = $2 
-      AND (frame_variant_id = $3 OR lens_id = $3 OR lens_addon_id = $3)
+      AND item_id = $3
       AND quantity >= $1 
       RETURNING id;
     `;
@@ -499,7 +494,7 @@ class PurchaseRepository {
       UPDATE purchase_item 
       SET quantity = quantity + $1 
       WHERE purchase_id = $2 
-      AND (frame_variant_id = $3 OR lens_id = $3 OR lens_addon_id = $3)
+      AND item_id = $3
       RETURNING id;
     `;
     const { rows } = await db.query(query, [
