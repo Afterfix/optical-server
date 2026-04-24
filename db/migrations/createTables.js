@@ -24,10 +24,6 @@ const createSaleReturnTable = require("../../api/saleReturn/saleReturn.table.js"
 const createSalesTable = require("../../api/sales/sales.table.js");
 const createDoneByTable = require("../../api/doneBy/doneBy.table.js");
 const createCostCenterTable = require("../../api/costCenter/costcenter.table.js");
-const createFrameTable = require("../../api/frame/frame.table.js");
-const createFrameVariantTable = require("../../api/frameVarient/frameVariant.table.js");
-const createLensesTable = require("../../api/lenses/lenses.table.js");
-const createLensAddonsTable = require("../../api/lensesAddons/lensAddons.table.js");
 const createPrescriptionTable = require("../../api/Prescriptions/prescription.table.js");
 const createServicesTable = require("../../api/services/services.table.js");
 const createAccountTable = require("../../api/account/account.table.js");
@@ -67,10 +63,6 @@ const createTables = async () => {
     await createCategoryCustomFieldsTable(client);
 
     await createItemCustomFieldsTable(client);
-    await createFrameTable(client);
-    await createFrameVariantTable(client);
-    await createLensesTable(client);
-    await createLensAddonsTable(client);
     await createLedgerTable(client);
     await createPartyTable(client);
     await createServicesTable(client);

@@ -1,15 +1,11 @@
 class SalesService {
   constructor(
     repository,
-    lensesRepository,
-    lensAddonsRepository,
-    frameVariantRepository,
+    itemRepository,
     voucherService,
   ) {
     this.repository = repository;
-    this.lensesRepository = lensesRepository;
-    this.lensAddonsRepository = lensAddonsRepository;
-    this.frameVariantRepository = frameVariantRepository;
+    this.itemRepository = itemRepository;
     this.voucherService = voucherService;
   }
 
@@ -25,50 +21,29 @@ class SalesService {
     const processedItems = [];
 
     for (const item of items) {
-      let frameData = null;
-      let lensData = null;
-      let addonData = null;
-
-      if (item.frame_variant_id) {
-        frameData = await this.frameVariantRepository.getById(db, item.frame_variant_id, tenantId);
-        if (!frameData) throw new Error(`Frame variant ${item.frame_variant_id} not found`);
-        
-        // Check stock only for frames
-        if (frameData.stock_qty < item.quantity) {
-          throw new Error(`Not enough stock for frame: ${frameData.frame_name || frameData.sku}.`);
-        }
+      if (!item.item_id) {
+        throw new Error("Each sale item must have an item_id");
       }
 
-      if (item.lens_id) {
-        lensData = await this.lensesRepository.getById(db, item.lens_id, tenantId);
-        if (!lensData) throw new Error(`Lens ${item.lens_id} not found`);
-      }
+      const itemData = await this.itemRepository.getById(db, item.item_id, tenantId);
+      if (!itemData) throw new Error(`Item ${item.item_id} not found`);
 
-      if (item.lens_addon_id) {
-        addonData = await this.lensAddonsRepository.getById(db, item.lens_addon_id, tenantId);
-        if (!addonData) throw new Error(`Lens Addon ${item.lens_addon_id} not found`);
-      }
-
-      // If absolutely nothing is selected in the row, we might want to skip or throw
-      if (!frameData && !lensData && !addonData) {
-        throw new Error("Each assembly item must have at least a Frame, Lens, or Addon");
+      if (itemData.stock_quantity < item.quantity) {
+        throw new Error(`Not enough stock for item: ${itemData.name}.`);
       }
 
       const quantity = parseFloat(item.quantity) || 1;
-      const fPrice = parseFloat(item.frame_price) || 0;
-      const lPrice = parseFloat(item.lens_price) || 0;
-      const aPrice = parseFloat(item.addon_price) || 0;
+      const unitPrice = parseFloat(item.unit_price || item.item_price || itemData.selling_price) || 0;
 
-      const basePrice = quantity * (fPrice + lPrice + aPrice);
+      const basePrice = quantity * unitPrice;
       
-      // Combined tax logic - taking max tax rate from available components or sum? 
-      // Usually, it's per item. If they are in one row, we can take the frame's tax or a default.
-      const taxRate = parseFloat(frameData?.tax || lensData?.tax || addonData?.tax || 0);
+      const taxRate = parseFloat(itemData.tax || 0);
       const taxAmount = (basePrice * taxRate) / 100;
       const totalPrice = basePrice + taxAmount;
 
       processedItems.push({
         ...item,
+        unit_price: unitPrice,
         tax_amount: taxAmount,
         total_price: totalPrice,
       });
@@ -78,9 +53,7 @@ class SalesService {
   }
 
   _getItemUniqueKey(item) {
-    if (item.frame_variant_id) return `frame_${item.frame_variant_id}`;
-    if (item.lens_id) return `lens_${item.lens_id}`;
-    if (item.lens_addon_id) return `addon_${item.lens_addon_id}`;
+    if (item.item_id) return `item_${item.item_id}`;
     return "unknown";
   }
 
@@ -159,12 +132,12 @@ class SalesService {
     itemsWithDetails,
   );
 
-  // Update Stock for Frames
+  // Update Stock for Items
   for(const item of itemsWithDetails) {
-    if (item.frame_variant_id) {
-      await this.frameVariantRepository.updateStock(
+    if (item.item_id) {
+      await this.itemRepository.updateStock(
         db,
-        item.frame_variant_id,
+        item.item_id,
         -item.quantity,
       );
     }
@@ -253,19 +226,19 @@ return {
     note,
   };
 
-  // Calculate Stock Differences for Frames
+  // Calculate Stock Differences for Items
   const stockAdjustments = new Map();
 
   (originalSale.items || []).forEach(item => {
-    if (item.frame_variant_id) {
-      const key = item.frame_variant_id;
+    if (item.item_id) {
+      const key = item.item_id;
       stockAdjustments.set(key, (stockAdjustments.get(key) || 0) + item.quantity);
     }
   });
 
   (itemsWithDetails || []).forEach(item => {
-    if (item.frame_variant_id) {
-      const key = item.frame_variant_id;
+    if (item.item_id) {
+      const key = item.item_id;
       stockAdjustments.set(key, (stockAdjustments.get(key) || 0) - item.quantity);
     }
   });
@@ -282,9 +255,9 @@ return {
     throw new Error("Failed to update the sale.");
   }
 
-  for (const [frameVariantId, quantityChange] of stockAdjustments.entries()) {
+  for (const [itemId, quantityChange] of stockAdjustments.entries()) {
     if (quantityChange !== 0) {
-      await this.frameVariantRepository.updateStock(db, frameVariantId, quantityChange);
+      await this.itemRepository.updateStock(db, itemId, quantityChange);
     }
   }
 
@@ -305,11 +278,11 @@ return {
 }
 
   async _processVouchersForPayments(sale, user, payment_methods, db) {
-  if (!sale.party_ledger_id) {
-    throw new Error(
-      `The customer '${sale.party_name}' does not have a linked Ledger account.`,
-    );
-  }
+  // if (!sale.party_ledger_id) {
+  //   throw new Error(
+  //     `The customer '${sale.party_name}' does not have a linked Ledger account.`,
+  //   );
+  // }
 
   for (const payment of payment_methods) {
     const amount = parseFloat(payment.amount);
@@ -435,10 +408,10 @@ _normalizeImageUrl(url) {
     await this.repository.delete(client, id, tenantId);
 
     for (const item of saleToDelete.items) {
-      if (item.frame_variant_id) {
-        await this.frameVariantRepository.updateStock(
+      if (item.item_id) {
+        await this.itemRepository.updateStock(
           client,
-          item.frame_variant_id,
+          item.item_id,
           item.quantity,
         );
       }

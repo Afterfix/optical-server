@@ -23,10 +23,9 @@ class SalesValidator {
     }
 
     for (const item of req.body.items) {
-      if (!item.frame_variant_id && !item.lens_id && !item.lens_addon_id) {
+      if (!item.item_id) {
         return res.status(400).json({
-          error:
-            "Each item must have a specific optical ID (frame_variant_id, lens_id, or lens_addon_id)",
+          error: "Each item must have an item_id",
         });
       }
       const hasPrice =
