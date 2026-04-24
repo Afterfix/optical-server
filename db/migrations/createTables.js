@@ -61,7 +61,7 @@ const createTables = async () => {
     await createBrandTable(client);
     await createCategoryTable(client);
     await createCategoryCustomFieldsTable(client);
-    await createItemTable(client);
+
     await createItemCustomFieldsTable(client);
     await createLedgerTable(client);
     await createPartyTable(client);
@@ -84,14 +84,15 @@ const createTables = async () => {
     await createTransactionFieldPermissionsTable(client);
     await createExpenseTable(client);
     await createPurchaseTable(client);
+    await createItemTable(client);
     await createPurchaseItemTable(client);
     // await createPurchaseReturnTable(client);
     await createSalesTable(client);
     await createPrescriptionTable(client);
     await createSaleItemTable(client);
     await createPrintSettingsTable(client);
-     // await createSaleReturnTable(client);
-    
+    // await createSaleReturnTable(client);
+
     // await createQueryTable(client);
     await createCustomPagesTable(client);
     await createCustomPageDataTable(client);

@@ -97,6 +97,30 @@ BEGIN
 END $$;
 `;
 
+const updatePurchaseItemTable = `
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='purchase_item' AND column_name='item_id') THEN
+    ALTER TABLE purchase_item ADD COLUMN item_id INTEGER REFERENCES item(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+`;
+
+const removeOldPurchaseItemColumns = `
+DO $$ 
+BEGIN 
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='purchase_item' AND column_name='frame_variant_id') THEN
+    ALTER TABLE purchase_item DROP COLUMN frame_variant_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='purchase_item' AND column_name='lens_id') THEN
+    ALTER TABLE purchase_item DROP COLUMN lens_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='purchase_item' AND column_name='lens_addon_id') THEN
+    ALTER TABLE purchase_item DROP COLUMN lens_addon_id;
+  END IF;
+END $$;
+`;
+
 const dropalltables = `
 DO $$
 DECLARE

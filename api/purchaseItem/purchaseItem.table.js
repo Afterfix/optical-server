@@ -11,11 +11,8 @@ module.exports = async (client) => {
       await client.query(`
         DO $$ 
         BEGIN 
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='purchase_item' AND column_name='lens_id') THEN
-            ALTER TABLE purchase_item ADD COLUMN lens_id INTEGER REFERENCES lenses(id) ON DELETE SET NULL;
-          END IF;
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='purchase_item' AND column_name='lens_addon_id') THEN
-            ALTER TABLE purchase_item ADD COLUMN lens_addon_id INTEGER REFERENCES lens_addons(id) ON DELETE SET NULL;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='purchase_item' AND column_name='item_id') THEN
+            ALTER TABLE purchase_item ADD COLUMN item_id INTEGER REFERENCES item(id) ON DELETE SET NULL;
           END IF;
         END $$;
       `);
@@ -25,10 +22,8 @@ module.exports = async (client) => {
           id SERIAL PRIMARY KEY,
           tenant_id INTEGER REFERENCES "tenant"(id) ON DELETE CASCADE, 
           purchase_id INTEGER NOT NULL REFERENCES purchase(id) ON DELETE CASCADE,
-          frame_variant_id INTEGER REFERENCES frame_variants(id) ON DELETE SET NULL,
-          lens_id INTEGER REFERENCES lenses(id) ON DELETE SET NULL,
-          lens_addon_id INTEGER REFERENCES lens_addons(id) ON DELETE SET NULL,
-          quantity INTEGER NOT NULL DEFAULT 1,
+          item_id INTEGER REFERENCES item(id) ON DELETE SET NULL,
+          quantity INTEGER NOT NULL DEFAULT 1, 
           unit_price DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
           total_price DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
           tax_amount DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
@@ -42,9 +37,7 @@ module.exports = async (client) => {
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_purchase_item_tenant_id ON purchase_item(tenant_id);
       CREATE INDEX IF NOT EXISTS idx_purchase_item_purchase_id ON purchase_item(purchase_id);
-      CREATE INDEX IF NOT EXISTS idx_purchase_item_frame_variant_id ON purchase_item(frame_variant_id);
-      CREATE INDEX IF NOT EXISTS idx_purchase_item_lens_id ON purchase_item(lens_id);
-      CREATE INDEX IF NOT EXISTS idx_purchase_item_lens_addon_id ON purchase_item(lens_addon_id);
+      CREATE INDEX IF NOT EXISTS idx_purchase_item_item_id ON purchase_item(item_id);
     `);
     console.log('✅ Indexes for "purchase_item" table ensured.');
   } catch (err) {

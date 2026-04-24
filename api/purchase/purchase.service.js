@@ -27,11 +27,8 @@ class PurchaseService {
       ...purchaseDetails
     } = purchaseData;
 
-    const itemsWithDetails = await this._processPurchaseItems(
-      items,
-      tenantId,
-      db,
-    );
+    const itemsWithDetails = await this._processPurchaseItems(items, tenantId, db);
+
     const itemsSubtotal = itemsWithDetails.reduce(
       (sum, item) => sum + item.total_price,
       0,
@@ -61,7 +58,7 @@ class PurchaseService {
       itemsWithDetails,
     );
 
-    // Update Stock for all item types
+    // Update Stock for identified item types
     for (const item of itemsWithDetails) {
       if (item.frame_variant_id) {
         await this.frameVariantRepository.updateStock(db, item.frame_variant_id, item.quantity);
@@ -73,19 +70,11 @@ class PurchaseService {
     }
 
     if (newPurchase && validPayments.length > 0) {
-      await this._processVouchersForPayments(
-        newPurchase,
-        user,
-        validPayments,
-        db,
-      );
+      await this._processVouchersForPayments(newPurchase, user, validPayments, db);
     }
 
     const result = await this.getById(newPurchase.id, tenantId, db);
-    return {
-      status: "success",
-      data: result,
-    };
+    return { status: "success", data: result };
   }
 
   async update(id, user, purchaseData, db) {
@@ -103,15 +92,8 @@ class PurchaseService {
       ...purchaseDetails
     } = purchaseData;
 
-    const itemsWithDetails = await this._processPurchaseItems(
-      updatedItems,
-      tenantId,
-      db,
-    );
-    const itemsSubtotal = itemsWithDetails.reduce(
-      (sum, item) => sum + item.total_price,
-      0,
-    );
+    const itemsWithDetails = await this._processPurchaseItems(updatedItems, tenantId, db);
+    const itemsSubtotal = itemsWithDetails.reduce((sum, item) => sum + item.total_price, 0);
     const grandTotal = itemsSubtotal - parseFloat(discount);
 
     const validIncomingPayments = payment_methods
@@ -123,97 +105,98 @@ class PurchaseService {
       }))
       .filter((p) => p.amount > 0 && p.account_id);
 
-    const incomingVoucherIds = new Set(
-      validIncomingPayments
-        .map((p) => p.voucher_id)
-        .filter((vid) => vid != null),
-    );
-
+    // Handle existing vouchers
+    const incomingVoucherIds = new Set(validIncomingPayments.map((p) => p.voucher_id).filter((vid) => vid != null));
     const existingVouchers = originalPurchase.payment_methods || [];
     for (const existingVoucher of existingVouchers) {
-      if (
-        existingVoucher.voucher_id &&
-        !incomingVoucherIds.has(existingVoucher.voucher_id)
-      ) {
+      if (existingVoucher.voucher_id && !incomingVoucherIds.has(existingVoucher.voucher_id)) {
         await this.voucherService.delete(existingVoucher.voucher_id, user, db);
       }
     }
 
-    // Calculate Stock Differences for all types
+    // Calculate Stock Differences
     const frameAdjustments = new Map();
     const lensAdjustments = new Map();
     const addonAdjustments = new Map();
-    
+
     (originalPurchase.items || []).forEach(item => {
-        if (item.frame_variant_id) {
-            frameAdjustments.set(item.frame_variant_id, (frameAdjustments.get(item.frame_variant_id) || 0) - item.quantity);
-        } else if (item.lens_id) {
-            lensAdjustments.set(item.lens_id, (lensAdjustments.get(item.lens_id) || 0) - item.quantity);
-        } else if (item.lens_addon_id) {
-            addonAdjustments.set(item.lens_addon_id, (addonAdjustments.get(item.lens_addon_id) || 0) - item.quantity);
-        }
+      // Re-process original items to find their type if not saved in DB
+      // (Assuming originalPurchase.items has item_id)
+      const type = item.frame_variant_id ? 'frame' : item.lens_id ? 'lens' : 'addon';
+      if (item.frame_variant_id) frameAdjustments.set(item.frame_variant_id, (frameAdjustments.get(item.frame_variant_id) || 0) - item.quantity);
+      else if (item.lens_id) lensAdjustments.set(item.lens_id, (lensAdjustments.get(item.lens_id) || 0) - item.quantity);
+      else if (item.lens_addon_id) addonAdjustments.set(item.lens_addon_id, (addonAdjustments.get(item.lens_addon_id) || 0) - item.quantity);
     });
 
     (itemsWithDetails || []).forEach(item => {
-        if (item.frame_variant_id) {
-            frameAdjustments.set(item.frame_variant_id, (frameAdjustments.get(item.frame_variant_id) || 0) + item.quantity);
-        } else if (item.lens_id) {
-            lensAdjustments.set(item.lens_id, (lensAdjustments.get(item.lens_id) || 0) + item.quantity);
-        } else if (item.lens_addon_id) {
-            addonAdjustments.set(item.lens_addon_id, (addonAdjustments.get(item.lens_addon_id) || 0) + item.quantity);
-        }
+      if (item.frame_variant_id) frameAdjustments.set(item.frame_variant_id, (frameAdjustments.get(item.frame_variant_id) || 0) + item.quantity);
+      else if (item.lens_id) lensAdjustments.set(item.lens_id, (lensAdjustments.get(item.lens_id) || 0) + item.quantity);
+      else if (item.lens_addon_id) addonAdjustments.set(item.lens_addon_id, (addonAdjustments.get(item.lens_addon_id) || 0) + item.quantity);
     });
 
-    const purchasePayload = {
-      ...purchaseDetails,
-      discount: parseFloat(discount),
-      total_amount: grandTotal,
-      note,
-    };
+    const updatedPurchase = await this.repository.update(db, id, tenantId, { ...purchaseDetails, discount, total_amount: grandTotal, note }, itemsWithDetails);
 
-    const updatedPurchase = await this.repository.update(
-      db,
-      id,
-      tenantId,
-      purchasePayload,
-      itemsWithDetails,
-    );
-
-    if (!updatedPurchase) {
-      throw new Error("Failed to update the purchase.");
-    }
-
-    for (const [id, change] of frameAdjustments.entries()) {
-      if (change !== 0) await this.frameVariantRepository.updateStock(db, id, change);
-    }
-    for (const [id, change] of lensAdjustments.entries()) {
-      if (change !== 0) await this.lensesRepository.updateStock(db, id, change);
-    }
-    for (const [id, change] of addonAdjustments.entries()) {
-      if (change !== 0) await this.lensAddonsRepository.updateStock(db, id, change);
-    }
+    // Apply stock changes
+    for (const [sid, change] of frameAdjustments.entries()) if (change !== 0) await this.frameVariantRepository.updateStock(db, sid, change);
+    for (const [sid, change] of lensAdjustments.entries()) if (change !== 0) await this.lensesRepository.updateStock(db, sid, change);
+    for (const [sid, change] of addonAdjustments.entries()) if (change !== 0) await this.lensAddonsRepository.updateStock(db, sid, change);
 
     if (updatedPurchase && validIncomingPayments.length > 0) {
-      await this._processVouchersForPayments(
-        updatedPurchase,
-        user,
-        validIncomingPayments,
-        db,
-      );
+      await this._processVouchersForPayments(updatedPurchase, user, validIncomingPayments, db);
     }
 
     const result = await this.getById(id, tenantId, db);
-    return {
-      status: "success",
-      data: result,
-    };
+    return { status: "success", data: result };
+  }
+
+  async _processPurchaseItems(items, tenantId, db) {
+    if (!items || items.length === 0) return [];
+    const processedItems = [];
+
+    for (const item of items) {
+      let dbItem = null;
+      const itemId = item.item_id || item.id;
+
+      // 1. Try Frame Variant
+      dbItem = await this.frameVariantRepository.getById(db, itemId, tenantId);
+      if (dbItem) {
+        item.frame_variant_id = itemId;
+      } else {
+        // 2. Try Lenses
+        dbItem = await this.lensesRepository.getById(db, itemId, tenantId);
+        if (dbItem) {
+          item.lens_id = itemId;
+        } else {
+          // 3. Try Addons
+          dbItem = await this.lensAddonsRepository.getById(db, itemId, tenantId);
+          if (dbItem) {
+            item.lens_addon_id = itemId;
+          }
+        }
+      }
+
+      if (!dbItem) {
+        throw new Error(`Item with ID ${itemId} not found in Frame, Lens, or Addon records.`);
+      }
+
+      const basePrice = parseFloat(item.quantity) * parseFloat(item.unit_price);
+      const taxRate = parseFloat(dbItem.tax || 0);
+      const taxAmount = (basePrice * taxRate) / 100;
+      const totalPrice = basePrice + taxAmount;
+
+      processedItems.push({
+        ...item,
+        item_id: itemId,
+        tax_amount: taxAmount,
+        total_price: totalPrice
+      });
+    }
+    return processedItems;
   }
 
   async _processVouchersForPayments(purchase, user, payment_methods, db) {
     if (!purchase.party_ledger_id) {
-      throw new Error(
-        `The supplier '${purchase.party_name}' does not have a linked Ledger account.`,
-      );
+      throw new Error(`The supplier '${purchase.party_name}' does not have a linked Ledger account.`);
     }
 
     for (const payment of payment_methods) {
@@ -225,88 +208,45 @@ class PurchaseService {
         amount: amount,
         date: purchase.date,
         description: `Payment for Purchase Invoice #${purchase.invoice_number}`,
-        voucher_no:
-          payment.voucher_no ||
-          `VP-${purchase.invoice_number}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-
-        voucher_type: 0, 
+        voucher_no: payment.voucher_no || `VP-${purchase.invoice_number}-${Date.now()}`,
+        voucher_type: 0,
         from_ledger: { ledger_id: payment.account_id },
         to_ledger: { ledger_id: purchase.party_ledger_id },
-
         cost_center_id: purchase.cost_center_id,
         done_by_id: purchase.done_by_id,
         mode_of_payment_id: payment.mode_of_payment_id,
-
-        transactions: [
-          {
-            invoice_id: purchase.id,
-            invoice_type: "PURCHASE",
-            received_amount: amount,
-          },
-        ],
+        transactions: [{ invoice_id: purchase.id, invoice_type: "PURCHASE", received_amount: amount }],
       };
 
       if (payment.voucher_id) {
-        await this.voucherService.update(
-          payment.voucher_id,
-          user,
-          voucherData,
-          db,
-        );
+        await this.voucherService.update(payment.voucher_id, user, voucherData, db);
       } else {
         await this.voucherService.create(user, voucherData, db);
       }
     }
   }
 
-  async updatePaymentAndStatus(client, purchaseId, amountChange) {
-    return this.repository.updatePaymentAndStatus(
-      client,
-      purchaseId,
-      amountChange,
-    );
-  }
-
   async delete(id, user, db) {
     const tenantId = user.tenant_id;
     const purchaseToDelete = await this.repository.getById(db, id, tenantId);
-    if (!purchaseToDelete)
-      throw new Error("Purchase not found or not authorized");
+    if (!purchaseToDelete) throw new Error("Purchase not found");
 
     const client = await db.connect();
     try {
       await client.query("BEGIN");
-
       if (purchaseToDelete.payment_methods) {
         for (const pm of purchaseToDelete.payment_methods) {
-            if (pm.voucher_id) {
-                await this.voucherService.delete(pm.voucher_id, user, db, client);
-            }
+          if (pm.voucher_id) await this.voucherService.delete(pm.voucher_id, user, db, client);
         }
       }
-
-      const deletedPurchase = await this.repository.delete(
-        client,
-        id,
-        tenantId,
-      );
-      if (!deletedPurchase)
-        throw new Error("Failed to delete purchase record.");
-
-      if (Array.isArray(purchaseToDelete.items)) {
-        for (const item of purchaseToDelete.items) {
-          if (item.frame_variant_id) {
-            await this.frameVariantRepository.updateStock(client, item.frame_variant_id, -item.quantity);
-          } else if (item.lens_id) {
-            await this.lensesRepository.updateStock(client, item.lens_id, -item.quantity);
-          } else if (item.lens_addon_id) {
-            await this.lensAddonsRepository.updateStock(client, item.lens_addon_id, -item.quantity);
-          }
-        }
+      await this.repository.delete(client, id, tenantId);
+      for (const item of (purchaseToDelete.items || [])) {
+        if (item.frame_variant_id) await this.frameVariantRepository.updateStock(client, item.frame_variant_id, -item.quantity);
+        else if (item.lens_id) await this.lensesRepository.updateStock(client, item.lens_id, -item.quantity);
+        else if (item.lens_addon_id) await this.lensAddonsRepository.updateStock(client, item.lens_addon_id, -item.quantity);
       }
-
       await client.query("COMMIT");
-      return { status: "success", data: deletedPurchase };
+      return { status: "success" };
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -316,59 +256,22 @@ class PurchaseService {
   }
 
   async getPaginatedByUserId(tenantId, filters, db) {
-    const { purchases, totalCount, total_amount, paid_amount } =
-      await this.repository.getPaginatedByUserId(db, tenantId, filters);
-
+    const { purchases, totalCount, total_amount, paid_amount } = await this.repository.getPaginatedByUserId(db, tenantId, filters);
     const pageSize = filters.page_size ? parseInt(filters.page_size, 10) : 10;
-    const page_count = totalCount > 0 ? Math.ceil(totalCount / pageSize) : 0;
-    const totalAmount = parseFloat(total_amount || 0);
-    const paidAmount = parseFloat(paid_amount || 0);
-    const pending_amount = totalAmount - paidAmount;
-
     return {
       data: purchases,
       count: totalCount,
-      page_count,
-      total_amount: totalAmount,
-      paid_amount: paidAmount,
-      pending_amount,
+      page_count: totalCount > 0 ? Math.ceil(totalCount / pageSize) : 0,
+      total_amount: parseFloat(total_amount || 0),
+      paid_amount: parseFloat(paid_amount || 0),
+      pending_amount: parseFloat(total_amount || 0) - parseFloat(paid_amount || 0),
     };
   }
 
   async getById(id, tenantId, db) {
     const purchase = await this.repository.getById(db, id, tenantId);
-    if (!purchase) throw new Error("Purchase not found or not authorized");
+    if (!purchase) throw new Error("Purchase not found");
     return purchase;
-  }
-
-  async _processPurchaseItems(items, tenantId, db) {
-    if (!items || items.length === 0) return [];
-
-    const processedItems = [];
-
-    for (const item of items) {
-        let dbItem = null;
-        if (item.frame_variant_id) {
-            dbItem = await this.frameVariantRepository.getById(db, item.frame_variant_id, tenantId);
-        } else if (item.lens_id) {
-            dbItem = await this.lensesRepository.getById(db, item.lens_id, tenantId);
-        } else if (item.lens_addon_id) {
-            dbItem = await this.lensAddonsRepository.getById(db, item.lens_addon_id, tenantId);
-        }
-
-        if (!dbItem) {
-            throw new Error("One or more items not found.");
-        }
-
-        const basePrice = item.quantity * item.unit_price;
-        const taxRate = parseFloat(dbItem.tax || 0);
-        const taxAmount = (basePrice * taxRate) / 100;
-        const totalPrice = basePrice + taxAmount;
-        
-        processedItems.push({ ...item, tax_amount: taxAmount, total_price: totalPrice });
-    }
-
-    return processedItems;
   }
 }
 

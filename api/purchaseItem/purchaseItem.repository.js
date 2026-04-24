@@ -2,10 +2,10 @@ class PurchaseItemRepository {
   async createMany(client, purchaseId, items, tenantId) {
     const query = `
       INSERT INTO purchase_item (
-        tenant_id, purchase_id, frame_variant_id, lens_id, lens_addon_id,
+        tenant_id, purchase_id, item_id,
         quantity, unit_price, total_price, tax_amount
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
     `;
 
     for (const item of items) {
@@ -17,9 +17,7 @@ class PurchaseItemRepository {
       await client.query(query, [
         tenantId,
         purchaseId,
-        item.frame_variant_id || null,
-        item.lens_id || null,
-        item.lens_addon_id || null,
+        item.item_id || null,
         item.quantity,
         unitPrice,
         total,
@@ -30,9 +28,9 @@ class PurchaseItemRepository {
 
   async getByPurchaseId(db, purchaseId) {
     const { rows } = await db.query(
-      `SELECT pi.*, fv.sku as frame_sku
+      `SELECT pi.*, i.name as item_name
        FROM purchase_item pi
-       LEFT JOIN frame_variants fv ON pi.frame_variant_id = fv.id
+       LEFT JOIN item i ON pi.item_id = i.id
        WHERE pi.purchase_id = $1`,
       [purchaseId],
     );
