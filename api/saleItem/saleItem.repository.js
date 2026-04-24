@@ -2,24 +2,20 @@ class SalesItemRepository {
   async createMany(client, salesId, items, tenantId) {
     const query = `
       INSERT INTO sale_item (
-        tenant_id, sales_id, frame_variant_id, lens_id, prescription_id, lens_addon_id,
-        quantity, frame_price, lens_price, addon_price, tax_amount, total_price
+        tenant_id, sales_id, item_id, prescription_id,
+        quantity, unit_price, tax_amount, total_price
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `;
 
     for (const item of items) {
       await client.query(query, [
         tenantId,
         salesId,
-        item.frame_variant_id || null,
-        item.lens_id || null,
+        item.item_id || null,
         item.prescription_id || null,
-        item.lens_addon_id || null,
         item.quantity || 1,
-        item.frame_price || 0,
-        item.lens_price || 0,
-        item.addon_price || 0,
+        item.unit_price || item.item_price || 0,
         item.tax_amount || 0,
         item.total_price,
       ]);
@@ -27,15 +23,12 @@ class SalesItemRepository {
   }
 
   async getBySalesId(db, salesId) {
-    // Joining tables here is helpful for displaying the order details
     const query = `
       SELECT si.*, 
-             fv.sku, 
-             l.name as lens_name
+             i.name as item_name,
+             i.sku as item_sku
       FROM sale_item si
-      LEFT JOIN frame_variants fv ON si.frame_variant_id = fv.id
-      LEFT JOIN lenses l ON si.lens_id = l.id
-      LEFT JOIN lens_addons la ON si.lens_addon_id = la.id
+      LEFT JOIN item i ON si.item_id = i.id
       WHERE si.sales_id = $1
     `;
     const { rows } = await db.query(query, [salesId]);

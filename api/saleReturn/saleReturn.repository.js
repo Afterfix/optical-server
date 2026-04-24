@@ -5,9 +5,7 @@ class SaleReturnRepository {
     const {
       tenant_id,
       sale_id,
-      frame_variant_id,
-      lens_id,
-      lens_addon_id,
+      item_id,
       return_quantity,
       date,
       reason,
@@ -17,21 +15,18 @@ class SaleReturnRepository {
       invoice_number,
     } = returnData;
 
-    const insertReturnQuery = `
-      INSERT INTO sale_return(
-        tenant_id, sale_id, frame_variant_id, lens_id, lens_addon_id,
+     ` INSERT INTO sale_return(
+        tenant_id, sale_id, item_id,
         return_quantity, date, reason, total_refund_amount, refunded_amount,
         status, done_by_id, cost_center_id, invoice_number
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0, 'pending', $10, $11, $12)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 'pending', $8, $9, $10)
       RETURNING *`;
 
     const { rows } = await dbClient.query(insertReturnQuery, [
       tenant_id,
       sale_id,
-      frame_variant_id || null,
-      lens_id || null,
-      lens_addon_id || null,
+      item_id,
       return_quantity,
       date || new Date(),
       reason,
@@ -82,7 +77,8 @@ class SaleReturnRepository {
           s.party_id,
           p.ledger_id as party_ledger_id,
           p.name as party_name,
-          COALESCE(f.name || ' (' || fv.sku || ')', l.name, la.name) as item_name,
+          i.name as item_name,
+          i.sku as item_sku,
           (sr.total_refund_amount - sr.refunded_amount) as balance,
           (
             SELECT json_agg(v_agg)
@@ -106,10 +102,7 @@ class SaleReturnRepository {
       FROM sale_return sr
       LEFT JOIN sales s ON sr.sale_id = s.id
       LEFT JOIN party p ON s.party_id = p.id
-      LEFT JOIN frame_variants fv ON sr.frame_variant_id = fv.id
-      LEFT JOIN frame f ON fv.frame_id = f.id
-      LEFT JOIN lenses l ON sr.lens_id = l.id
-      LEFT JOIN lens_addons la ON sr.lens_addon_id = la.id
+      LEFT JOIN item i ON sr.item_id = i.id
       WHERE sr.id = $1 AND sr.tenant_id = $2
     `;
     const { rows } = await db.query(query, [id, tenantId]);
@@ -133,9 +126,7 @@ class SaleReturnRepository {
       searchKey,
       start_date,
       end_date,
-      frame_variant_id,
-      lens_id,
-      lens_addon_id,
+      item_id,
       party_id,
       done_by_id,
       cost_center_id,
@@ -147,10 +138,7 @@ class SaleReturnRepository {
 
     const fromAndJoins = `
         FROM sale_return sr
-        LEFT JOIN frame_variants fv ON sr.frame_variant_id = fv.id
-        LEFT JOIN frame f ON fv.frame_id = f.id
-        LEFT JOIN lenses l ON sr.lens_id = l.id
-        LEFT JOIN lens_addons la ON sr.lens_addon_id = la.id
+        LEFT JOIN item i ON sr.item_id = i.id
         LEFT JOIN sales s ON sr.sale_id = s.id
         LEFT JOIN party pa ON s.party_id = pa.id
         LEFT JOIN "done_by" db ON sr.done_by_id = db.id
@@ -163,7 +151,7 @@ class SaleReturnRepository {
 
     if (searchKey && searchType) {
       const searchConfig = {
-        item_name: "COALESCE(f.name, l.name, la.name)",
+        item_name: "i.name",
         party_name: "pa.name",
         invoice_number: "sr.invoice_number",
         reason: "sr.reason",
@@ -184,18 +172,10 @@ class SaleReturnRepository {
       whereClause += ` AND sr.date <= $${paramIndex++}`;
       params.push(end_date);
     }
-    if (frame_variant_id) {
-      whereClause += ` AND sr.frame_variant_id = $${paramIndex++}`;
-      params.push(frame_variant_id);
+    if (item_id) {
+      whereClause += ` AND sr.item_id = $${paramIndex++}`;
+      params.push(item_id);
     }
-    if (lens_id) {
-        whereClause += ` AND sr.lens_id = $${paramIndex++}`;
-        params.push(lens_id);
-      }
-      if (lens_addon_id) {
-        whereClause += ` AND sr.lens_addon_id = $${paramIndex++}`;
-        params.push(lens_addon_id);
-      }
     if (party_id) {
       whereClause += ` AND s.party_id = $${paramIndex++}`;
       params.push(party_id);
@@ -229,9 +209,7 @@ class SaleReturnRepository {
         SELECT
           sr.id,
           sr.sale_id,
-          sr.frame_variant_id,
-          sr.lens_id,
-          sr.lens_addon_id,
+          sr.item_id,
           sr.return_quantity,
           sr.total_refund_amount,
           sr.refunded_amount,
@@ -240,7 +218,8 @@ class SaleReturnRepository {
           sr.date,
           sr.invoice_number,
           sr.reason,
-          COALESCE(f.name || ' (' || fv.sku || ')', l.name, la.name) as item_name,
+          i.name as item_name,
+          i.sku as item_sku,
           pa.name as party_name,
           db.name as done_by_name,
           cc.name as cost_center_name,
@@ -251,7 +230,8 @@ class SaleReturnRepository {
 
     const allowedSortColumns = {
       date: "sr.date",
-      item_name: "COALESCE(f.name, l.name, la.name)",
+      item_name: "i.name",
+
       party_name: "pa.name",
       return_quantity: "sr.return_quantity",
       total_refund_amount: "sr.total_refund_amount",

@@ -512,21 +512,15 @@ class SalesRepository {
           FROM (
             SELECT 
               si.id, 
-              si.frame_variant_id,
-              si.lens_id,
-              si.lens_addon_id,
-              COALESCE(f.name || ' (' || fv.sku || ')', l.name, la.name) as item_name, 
+              si.item_id,
+              i.name as item_name,
+              i.sku as item_sku,
               si.quantity, 
-              si.frame_price,
-              si.lens_price,
-              si.addon_price,
+              si.unit_price,
               si.tax_amount, 
               si.total_price
             FROM sale_item si 
-            LEFT JOIN frame_variants fv ON si.frame_variant_id = fv.id
-            LEFT JOIN frame f ON fv.frame_id = f.id
-            LEFT JOIN lenses l ON si.lens_id = l.id
-            LEFT JOIN lens_addons la ON si.lens_addon_id = la.id
+            LEFT JOIN item i ON si.item_id = i.id
             WHERE si.sales_id = s.id
           ) as si_agg
         ) as items,
@@ -555,7 +549,7 @@ class SalesRepository {
           WHERE si.sales_id = s.id
         ) as tax_amount,
         (
-          SELECT SUM(si.quantity * (si.frame_price + si.lens_price + si.addon_price)) 
+          SELECT SUM(si.quantity * si.unit_price) 
           FROM sale_item si 
           WHERE si.sales_id = s.id
         ) as sub_total,
@@ -591,7 +585,7 @@ class SalesRepository {
       UPDATE sale_item
       SET returned_quantity = returned_quantity + $1
       WHERE sales_id = $2
-        AND (frame_variant_id = $3 OR lens_id = $3 OR lens_addon_id = $3)
+        AND item_id = $3
         AND (quantity - returned_quantity) >= $1; 
     `;
     const { rowCount } = await dbClient.query(query, [
@@ -618,7 +612,7 @@ class SalesRepository {
     const query = `
       UPDATE sale_item
       SET returned_quantity = returned_quantity - $1
-      WHERE sales_id = $2 AND (frame_variant_id = $3 OR lens_id = $3 OR lens_addon_id = $3);
+      WHERE sales_id = $2 AND item_id = $3;
     `;
 
     const { rowCount } = await dbClient.query(query, [

@@ -8,9 +8,7 @@ const SalesService = require("./sales.service");
 const SalesController = require("./sales.controller");
 const SalesValidator = require("./sales.validator");
 
-const LensesRepository = require("../lenses/lenses.repository");
-const LensAddonsRepository = require("../lensesAddons/lensAddons.repository");
-const FrameVariantRepository = require("../frameVarient/frameVariant.repository");
+const ItemRepository = require("../item/item.repository");
 
 // --- Dependency Injection for Voucher Service ---
 const VoucherRepository = require('../voucher/voucher.repository');
@@ -27,6 +25,13 @@ const LedgerService = require('../ledger/ledger.service');
 
 // Initialize Repositories
 const salesRepository = new SalesRepository(db);
+const itemRepository = new ItemRepository();
+
+// To avoid removing imports that are still used in other services (like purchase), we can keep them for now, but we don't pass them to SalesService.
+const LensesRepository = require("../lenses/lenses.repository");
+const LensAddonsRepository = require("../lensesAddons/lensAddons.repository");
+const FrameVariantRepository = require("../frameVarient/frameVariant.repository");
+
 const lensesRepository = new LensesRepository();
 const lensAddonsRepository = new LensAddonsRepository();
 const frameVariantRepository = new FrameVariantRepository();
@@ -42,9 +47,7 @@ const voucherTransactionsService = new VoucherTransactionsService();
 // Partially initialize SalesService (without voucherService yet) to pass to VoucherService
 const salesService = new SalesService(
   salesRepository,
-  lensesRepository,
-  lensAddonsRepository,
-  frameVariantRepository,
+  itemRepository,
   null
 ); 
 
@@ -58,9 +61,7 @@ const purchaseService = new PurchaseService(
 const saleReturnService = new SaleReturnService(
   saleReturnRepository,
   salesRepository,
-  lensesRepository,
-  lensAddonsRepository,
-  frameVariantRepository,
+  itemRepository,
   null
 );
 const purchaseReturnService = new PurchaseReturnService(

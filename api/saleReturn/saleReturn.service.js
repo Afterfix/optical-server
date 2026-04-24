@@ -2,16 +2,12 @@ class SaleReturnService {
   constructor(
     saleReturnRepository,
     saleRepository,
-    lensesRepository,
-    lensAddonsRepository,
-    frameVariantRepository,
+    itemRepository,
     voucherService,
   ) {
     this.repository = saleReturnRepository;
     this.saleRepository = saleRepository;
-    this.lensesRepository = lensesRepository;
-    this.lensAddonsRepository = lensAddonsRepository;
-    this.frameVariantRepository = frameVariantRepository;
+    this.itemRepository = itemRepository;
     this.voucherService = voucherService;
   }
 
@@ -23,22 +19,10 @@ class SaleReturnService {
       const { payment_methods = [], unit_price = 0, ...returnDetails } = body;
 
       let itemDetails = null;
-      if (returnDetails.frame_variant_id) {
-        itemDetails = await this.frameVariantRepository.getById(
+      if (returnDetails.item_id) {
+        itemDetails = await this.itemRepository.getById(
           client,
-          returnDetails.frame_variant_id,
-          user.tenant_id,
-        );
-      } else if (returnDetails.lens_id) {
-        itemDetails = await this.lensesRepository.getById(
-          client,
-          returnDetails.lens_id,
-          user.tenant_id,
-        );
-      } else if (returnDetails.lens_addon_id) {
-        itemDetails = await this.lensAddonsRepository.getById(
-          client,
-          returnDetails.lens_addon_id,
+          returnDetails.item_id,
           user.tenant_id,
         );
       }
@@ -75,16 +59,16 @@ class SaleReturnService {
       await this.saleRepository.increaseItemReturnedQuantity(
         client,
         returnData.sale_id,
-        returnData.frame_variant_id || returnData.lens_id || returnData.lens_addon_id, // Potential fix for generic method
+        returnData.item_id,
         returnData.return_quantity,
       );
 
       const newSaleReturn = await this.repository.create(client, returnData);
 
-      if (newSaleReturn.frame_variant_id) {
-        await this.frameVariantRepository.updateStock(
+      if (newSaleReturn.item_id) {
+        await this.itemRepository.updateStock(
           client,
-          newSaleReturn.frame_variant_id,
+          newSaleReturn.item_id,
           newSaleReturn.return_quantity,
         );
       }
@@ -174,14 +158,10 @@ class SaleReturnService {
       if (!existingReturn) throw new Error("Sale return not found");
 
       let itemDetails = null;
-      const itemId = existingReturn.frame_variant_id || existingReturn.lens_id || existingReturn.lens_addon_id;
+      const itemId = existingReturn.item_id;
       
-      if (existingReturn.frame_variant_id) {
-          itemDetails = await this.frameVariantRepository.getById(client, existingReturn.frame_variant_id, tenantId);
-      } else if (existingReturn.lens_id) {
-          itemDetails = await this.lensesRepository.getById(client, existingReturn.lens_id, tenantId);
-      } else if (existingReturn.lens_addon_id) {
-          itemDetails = await this.lensAddonsRepository.getById(client, existingReturn.lens_addon_id, tenantId);
+      if (existingReturn.item_id) {
+          itemDetails = await this.itemRepository.getById(client, existingReturn.item_id, tenantId);
       }
 
       if (!itemDetails) {
@@ -202,10 +182,10 @@ class SaleReturnService {
       const quantityDifference =
         returnData.return_quantity - existingReturn.return_quantity;
       if (quantityDifference !== 0) {
-          if (existingReturn.frame_variant_id) {
-              await this.frameVariantRepository.updateStock(
+          if (existingReturn.item_id) {
+              await this.itemRepository.updateStock(
                   client,
-                  existingReturn.frame_variant_id,
+                  existingReturn.item_id,
                   quantityDifference,
                 );
           }
@@ -296,12 +276,12 @@ class SaleReturnService {
       );
       if (!saleReturnToDelete) throw new Error("Sale return not found.");
 
-      const itemId = saleReturnToDelete.frame_variant_id || saleReturnToDelete.lens_id || saleReturnToDelete.lens_addon_id;
+      const itemId = saleReturnToDelete.item_id;
 
-      if (saleReturnToDelete.frame_variant_id) {
-          await this.frameVariantRepository.updateStock(
+      if (saleReturnToDelete.item_id) {
+          await this.itemRepository.updateStock(
               client,
-              saleReturnToDelete.frame_variant_id,
+              saleReturnToDelete.item_id,
               -saleReturnToDelete.return_quantity,
             );
       }

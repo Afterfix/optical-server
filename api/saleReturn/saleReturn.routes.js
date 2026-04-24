@@ -4,9 +4,7 @@ const validateToken = require("../../../middlewares/validateToken");
 
 const SaleReturnRepository = require("./saleReturn.repository");
 const SaleRepository = require("../sales/sales.repository");
-const LensesRepository = require("../lenses/lenses.repository");
-const LensAddonsRepository = require("../lensesAddons/lensAddons.repository");
-const FrameVariantRepository = require("../frameVarient/frameVariant.repository");
+const ItemRepository = require("../item/item.repository");
 const VoucherRepository = require("../voucher/voucher.repository");
 const LedgerRepository = require("../ledger/ledger.repository");
 
@@ -20,9 +18,7 @@ const SaleReturnValidator = require("./saleReturn.validator");
 
 const saleReturnRepository = new SaleReturnRepository();
 const saleRepository = new SaleRepository();
-const lensesRepository = new LensesRepository();
-const lensAddonsRepository = new LensAddonsRepository();
-const frameVariantRepository = new FrameVariantRepository();
+const itemRepository = new ItemRepository();
 
 const voucherRepository = new VoucherRepository();
 const vtService = new VoucherTransactionsService();
@@ -42,9 +38,7 @@ const voucherService = new VoucherService(
 const saleReturnService = new SaleReturnService(
   saleReturnRepository,
   saleRepository,
-  lensesRepository,
-  lensAddonsRepository,
-  frameVariantRepository,
+  itemRepository,
   voucherService,
 );
 
