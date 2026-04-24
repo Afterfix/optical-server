@@ -278,11 +278,11 @@ return {
 }
 
   async _processVouchersForPayments(sale, user, payment_methods, db) {
-  if (!sale.party_ledger_id) {
-    throw new Error(
-      `The customer '${sale.party_name}' does not have a linked Ledger account.`,
-    );
-  }
+  // if (!sale.party_ledger_id) {
+  //   throw new Error(
+  //     `The customer '${sale.party_name}' does not have a linked Ledger account.`,
+  //   );
+  // }
 
   for (const payment of payment_methods) {
     const amount = parseFloat(payment.amount);
