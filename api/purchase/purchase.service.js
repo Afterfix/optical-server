@@ -43,6 +43,14 @@ class PurchaseService {
       }))
       .filter((p) => p.amount > 0 && p.account_id);
 
+    // Use the top-level mode_of_payment_id from the payload (set by the form
+    // field, covers credit purchases). Fall back to the first payment method's
+    // mode if the form field was left blank.
+    const preferredModeOfPaymentId =
+      purchaseDetails.mode_of_payment_id ||
+      payment_methods[0]?.mode_of_payment_id ||
+      null;
+
     const purchasePayload = {
       ...purchaseDetails,
       tenant_id: tenantId,
@@ -50,6 +58,7 @@ class PurchaseService {
       total_amount: grandTotal,
       date: purchaseDetails.date || new Date(),
       note,
+      mode_of_payment_id: preferredModeOfPaymentId,
     };
 
     const newPurchase = await this.repository.create(
@@ -105,6 +114,13 @@ class PurchaseService {
       }))
       .filter((p) => p.amount > 0 && p.account_id);
 
+    // Use the top-level mode_of_payment_id from the payload (form field),
+    // fall back to the first incoming payment method's mode.
+    const preferredModeOfPaymentId =
+      purchaseDetails.mode_of_payment_id ||
+      payment_methods[0]?.mode_of_payment_id ||
+      null;
+
     // Handle existing vouchers
     const incomingVoucherIds = new Set(validIncomingPayments.map((p) => p.voucher_id).filter((vid) => vid != null));
     const existingVouchers = originalPurchase.payment_methods || [];
@@ -134,7 +150,7 @@ class PurchaseService {
       else if (item.lens_addon_id) addonAdjustments.set(item.lens_addon_id, (addonAdjustments.get(item.lens_addon_id) || 0) + item.quantity);
     });
 
-    const updatedPurchase = await this.repository.update(db, id, tenantId, { ...purchaseDetails, discount, total_amount: grandTotal, note }, itemsWithDetails);
+    const updatedPurchase = await this.repository.update(db, id, tenantId, { ...purchaseDetails, discount, total_amount: grandTotal, note, mode_of_payment_id: preferredModeOfPaymentId }, itemsWithDetails);
 
     // Apply stock changes
     for (const [sid, change] of frameAdjustments.entries()) if (change !== 0) await this.frameVariantRepository.updateStock(db, sid, change);

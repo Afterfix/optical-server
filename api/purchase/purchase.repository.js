@@ -25,8 +25,8 @@ class PurchaseRepository {
       const initialStatus = "unpaid";
 
       const insertPurchaseQuery = `
-        INSERT INTO purchase(tenant_id, party_id, done_by_id, cost_center_id, total_amount, paid_amount, discount, date, invoice_number, status)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        INSERT INTO purchase(tenant_id, party_id, done_by_id, cost_center_id, total_amount, paid_amount, discount, date, invoice_number, status, mode_of_payment_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING *;
       `;
       const purchaseResult = await client.query(insertPurchaseQuery, [
@@ -40,6 +40,7 @@ class PurchaseRepository {
         date,
         invoice_number,
         initialStatus,
+        purchaseData.mode_of_payment_id || null,
       ]);
       const newPurchase = purchaseResult.rows[0];
 
@@ -72,13 +73,15 @@ class PurchaseRepository {
         discount,
         date,
         invoice_number,
+        mode_of_payment_id,
       } = purchaseData;
 
       const updatePurchaseQuery = `
         UPDATE purchase
         SET party_id = $1, total_amount = $2,
-            discount = $3, date = $4, done_by_id = $5, cost_center_id = $6, invoice_number = $7
-        WHERE id = $8 AND tenant_id = $9;
+            discount = $3, date = $4, done_by_id = $5, cost_center_id = $6, invoice_number = $7,
+            mode_of_payment_id = $8
+        WHERE id = $9 AND tenant_id = $10;
       `;
       await client.query(updatePurchaseQuery, [
         party_id,
@@ -88,6 +91,7 @@ class PurchaseRepository {
         done_by_id,
         cost_center_id,
         invoice_number,
+        mode_of_payment_id || null,
         id,
         tenantId,
       ]);
@@ -110,9 +114,10 @@ class PurchaseRepository {
       `SELECT 
          p.*, 
          pa.name as party_name,
-         pa.ledger_id as party_ledger_id, -- <<< FETCH LEDGER ID FROM PARTY
+         pa.ledger_id as party_ledger_id,
          db.name as done_by_name,
          cc.name as cost_center_name,
+         mop_ledger.name as default_account_name,
          (
            SELECT json_agg(pi_agg)
            FROM (
@@ -132,7 +137,7 @@ class PurchaseRepository {
           SELECT json_agg(payment_agg)
           FROM (
             SELECT
-              v.id as voucher_id, -- Make sure this is selected!
+              v.id as voucher_id,
               v.from_ledger_id as account_id,
               l.name as account_name,
               vt.received_amount as amount,
@@ -151,6 +156,8 @@ class PurchaseRepository {
        LEFT JOIN party pa ON p.party_id = pa.id
        LEFT JOIN "done_by" db ON p.done_by_id = db.id
        LEFT JOIN "cost_center" cc ON p.cost_center_id = cc.id
+       LEFT JOIN "mode_of_payment" mop ON p.mode_of_payment_id = mop.id
+       LEFT JOIN "ledger" mop_ledger ON mop.default_ledger_id = mop_ledger.id
        WHERE p.id = $1 AND p.tenant_id = $2`,
       [id, tenantId],
     );
@@ -173,9 +180,10 @@ class PurchaseRepository {
             SELECT 
                 p.*, 
                 pa.name as party_name,
-                pa.ledger_id as party_ledger_id, -- <<< FETCH LEDGER ID FROM PARTY
+                pa.ledger_id as party_ledger_id,
                 db.name as done_by_name,
                 cc.name as cost_center_name,
+                mop_ledger.name as default_account_name,
                 (
                   SELECT json_agg(payment_agg)
                   FROM (
@@ -195,6 +203,8 @@ class PurchaseRepository {
             LEFT JOIN party pa ON p.party_id = pa.id 
             LEFT JOIN "done_by" db ON p.done_by_id = db.id
             LEFT JOIN "cost_center" cc ON p.cost_center_id = cc.id
+            LEFT JOIN "mode_of_payment" mop ON p.mode_of_payment_id = mop.id
+            LEFT JOIN "ledger" mop_ledger ON mop.default_ledger_id = mop_ledger.id
             WHERE p.tenant_id = $1
         `;
     const params = [tenantId];
@@ -320,6 +330,8 @@ class PurchaseRepository {
         LEFT JOIN party pa ON p.party_id = pa.id 
         LEFT JOIN "done_by" db ON p.done_by_id = db.id
         LEFT JOIN "cost_center" cc ON p.cost_center_id = cc.id
+        LEFT JOIN "mode_of_payment" mop ON p.mode_of_payment_id = mop.id
+        LEFT JOIN "ledger" mop_ledger ON mop.default_ledger_id = mop_ledger.id
     `;
     let whereClause = ` WHERE p.tenant_id = $1 `;
     const params = [tenantId];
@@ -402,9 +414,10 @@ class PurchaseRepository {
       SELECT 
           p.*, 
           pa.name as party_name,
-          pa.ledger_id as party_ledger_id, -- <<< FETCH LEDGER ID FROM PARTY
+          pa.ledger_id as party_ledger_id,
           db.name as done_by_name,
           cc.name as cost_center_name,
+          mop_ledger.name as default_account_name,
           COUNT(*) OVER() AS total_count,
           (
             SELECT json_agg(payment_agg)

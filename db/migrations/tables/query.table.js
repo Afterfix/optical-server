@@ -2,8 +2,6 @@ module.exports = async (client) => {
   try {
     console.log("⏳ applying database updates...");
 
-    
-
     await client.query(frametables);
     console.log("✅ framevarinat table updated (barcode added).");
     await client.query(updateServicesTable);
@@ -17,6 +15,9 @@ module.exports = async (client) => {
 
     await client.query(removeOldPurchaseItemColumns);
     console.log("✅ purchase_item table updated (removed frame_variant_id, lens_id, lens_addon_id).");
+
+    await client.query(addModeOfPaymentIdToPurchase);
+    console.log("✅ purchase table updated (mode_of_payment_id column ensured).");
 
   } catch (e) {
     console.error("❌ An error occurred during migration:", e.message);
@@ -114,3 +115,17 @@ BEGIN
 END
 $$;
 `;
+
+const addModeOfPaymentIdToPurchase = `
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name='purchase' AND column_name='mode_of_payment_id'
+  ) THEN
+    ALTER TABLE purchase
+      ADD COLUMN mode_of_payment_id INTEGER REFERENCES mode_of_payment(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+`;
+
