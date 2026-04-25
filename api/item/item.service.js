@@ -73,12 +73,16 @@ class ItemService {
 
       // 4. Handle Image
       if (imageFile) {
-        let partialImagePath = await moveItemImage(
+        let imageUrl = await moveItemImage(
           imageFile,
           newItem.tenant_id,
           newItem.id,
         );
-        newItem.image = `uploads/${partialImagePath}`.replace(/\\/g, "/");
+        if (imageUrl && imageUrl.startsWith('http')) {
+          newItem.image = imageUrl;
+        } else {
+          newItem.image = `uploads/${imageUrl}`.replace(/\\/g, "/");
+        }
         // Update the item with the image path
         await this.itemRepository.update(
           client,
@@ -142,12 +146,16 @@ class ItemService {
       // Handle Image
       if (itemData.imageFile) {
         await deleteItemImageDirectory(tenantId, id);
-        let partialImagePath = await moveItemImage(
+        let imageUrl = await moveItemImage(
           itemData.imageFile,
           tenantId,
           id,
         );
-        itemData.image = `uploads/${partialImagePath}`.replace(/\\/g, "/");
+        if (imageUrl && imageUrl.startsWith('http')) {
+          itemData.image = imageUrl;
+        } else {
+          itemData.image = `uploads/${imageUrl}`.replace(/\\/g, "/");
+        }
         delete itemData.imageFile;
       }
 
