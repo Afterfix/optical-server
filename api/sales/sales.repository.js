@@ -518,7 +518,8 @@ class SalesRepository {
               si.quantity, 
               si.unit_price,
               si.tax_amount, 
-              si.total_price
+              si.total_price,
+              si.prescription_id
             FROM sale_item si 
             LEFT JOIN item i ON si.item_id = i.id
             WHERE si.sales_id = s.id
