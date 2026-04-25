@@ -1,15 +1,11 @@
 class PurchaseService {
   constructor(
     repository,
-    lensesRepository,
-    lensAddonsRepository,
-    frameVariantRepository,
+    itemRepository,
     voucherService,
   ) {
     this.repository = repository;
-    this.lensesRepository = lensesRepository;
-    this.lensAddonsRepository = lensAddonsRepository;
-    this.frameVariantRepository = frameVariantRepository;
+    this.itemRepository = itemRepository;
     this.voucherService = voucherService;
   }
 
@@ -69,12 +65,8 @@ class PurchaseService {
 
     // Update Stock for identified item types
     for (const item of itemsWithDetails) {
-      if (item.frame_variant_id) {
-        await this.frameVariantRepository.updateStock(db, item.frame_variant_id, item.quantity);
-      } else if (item.lens_id) {
-        await this.lensesRepository.updateStock(db, item.lens_id, item.quantity);
-      } else if (item.lens_addon_id) {
-        await this.lensAddonsRepository.updateStock(db, item.lens_addon_id, item.quantity);
+      if (item.item_id) {
+        await this.itemRepository.updateStock(db, item.item_id, item.quantity);
       }
     }
 
@@ -131,31 +123,20 @@ class PurchaseService {
     }
 
     // Calculate Stock Differences
-    const frameAdjustments = new Map();
-    const lensAdjustments = new Map();
-    const addonAdjustments = new Map();
+    const itemAdjustments = new Map();
 
     (originalPurchase.items || []).forEach(item => {
-      // Re-process original items to find their type if not saved in DB
-      // (Assuming originalPurchase.items has item_id)
-      const type = item.frame_variant_id ? 'frame' : item.lens_id ? 'lens' : 'addon';
-      if (item.frame_variant_id) frameAdjustments.set(item.frame_variant_id, (frameAdjustments.get(item.frame_variant_id) || 0) - item.quantity);
-      else if (item.lens_id) lensAdjustments.set(item.lens_id, (lensAdjustments.get(item.lens_id) || 0) - item.quantity);
-      else if (item.lens_addon_id) addonAdjustments.set(item.lens_addon_id, (addonAdjustments.get(item.lens_addon_id) || 0) - item.quantity);
+      if (item.item_id) itemAdjustments.set(item.item_id, (itemAdjustments.get(item.item_id) || 0) - item.quantity);
     });
 
     (itemsWithDetails || []).forEach(item => {
-      if (item.frame_variant_id) frameAdjustments.set(item.frame_variant_id, (frameAdjustments.get(item.frame_variant_id) || 0) + item.quantity);
-      else if (item.lens_id) lensAdjustments.set(item.lens_id, (lensAdjustments.get(item.lens_id) || 0) + item.quantity);
-      else if (item.lens_addon_id) addonAdjustments.set(item.lens_addon_id, (addonAdjustments.get(item.lens_addon_id) || 0) + item.quantity);
+      if (item.item_id) itemAdjustments.set(item.item_id, (itemAdjustments.get(item.item_id) || 0) + item.quantity);
     });
 
     const updatedPurchase = await this.repository.update(db, id, tenantId, { ...purchaseDetails, discount, total_amount: grandTotal, note, mode_of_payment_id: preferredModeOfPaymentId }, itemsWithDetails);
 
     // Apply stock changes
-    for (const [sid, change] of frameAdjustments.entries()) if (change !== 0) await this.frameVariantRepository.updateStock(db, sid, change);
-    for (const [sid, change] of lensAdjustments.entries()) if (change !== 0) await this.lensesRepository.updateStock(db, sid, change);
-    for (const [sid, change] of addonAdjustments.entries()) if (change !== 0) await this.lensAddonsRepository.updateStock(db, sid, change);
+    for (const [sid, change] of itemAdjustments.entries()) if (change !== 0) await this.itemRepository.updateStock(db, sid, change);
 
     if (updatedPurchase && validIncomingPayments.length > 0) {
       await this._processVouchersForPayments(updatedPurchase, user, validIncomingPayments, db);
@@ -170,29 +151,11 @@ class PurchaseService {
     const processedItems = [];
 
     for (const item of items) {
-      let dbItem = null;
       const itemId = item.item_id || item.id;
-
-      // 1. Try Frame Variant
-      dbItem = await this.frameVariantRepository.getById(db, itemId, tenantId);
-      if (dbItem) {
-        item.frame_variant_id = itemId;
-      } else {
-        // 2. Try Lenses
-        dbItem = await this.lensesRepository.getById(db, itemId, tenantId);
-        if (dbItem) {
-          item.lens_id = itemId;
-        } else {
-          // 3. Try Addons
-          dbItem = await this.lensAddonsRepository.getById(db, itemId, tenantId);
-          if (dbItem) {
-            item.lens_addon_id = itemId;
-          }
-        }
-      }
+      const dbItem = await this.itemRepository.getById(db, itemId, tenantId);
 
       if (!dbItem) {
-        throw new Error(`Item with ID ${itemId} not found in Frame, Lens, or Addon records.`);
+        throw new Error(`Item with ID ${itemId} not found.`);
       }
 
       const basePrice = parseFloat(item.quantity) * parseFloat(item.unit_price);
@@ -257,9 +220,7 @@ class PurchaseService {
       }
       await this.repository.delete(client, id, tenantId);
       for (const item of (purchaseToDelete.items || [])) {
-        if (item.frame_variant_id) await this.frameVariantRepository.updateStock(client, item.frame_variant_id, -item.quantity);
-        else if (item.lens_id) await this.lensesRepository.updateStock(client, item.lens_id, -item.quantity);
-        else if (item.lens_addon_id) await this.lensAddonsRepository.updateStock(client, item.lens_addon_id, -item.quantity);
+        if (item.item_id) await this.itemRepository.updateStock(client, item.item_id, -item.quantity);
       }
       await client.query("COMMIT");
       return { status: "success" };
@@ -282,6 +243,10 @@ class PurchaseService {
       paid_amount: parseFloat(paid_amount || 0),
       pending_amount: parseFloat(total_amount || 0) - parseFloat(paid_amount || 0),
     };
+  }
+
+  async updatePaymentAndStatus(client, purchaseId, amountChange) {
+    return this.repository.updatePaymentAndStatus(client, purchaseId, amountChange);
   }
 
   async getById(id, tenantId, db) {

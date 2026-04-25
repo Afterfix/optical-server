@@ -12,6 +12,7 @@ const LensAddonsRepository = require("../lensesAddons/lensAddons.repository");
 const FrameVariantRepository = require("../frameVarient/frameVariant.repository");
 const AccountRepository = require("../account/account.repository");
 const TenantRepository = require('../../api/tenant/tenant.repository');
+const ItemRepository = require("../item/item.repository");
 
 // --- Dependency Injection for Voucher Service ---
 // We need VoucherService to create vouchers from Purchase
@@ -32,6 +33,7 @@ const purchaseRepository = new PurchaseRepository();
 const lensesRepository = new LensesRepository();
 const lensAddonsRepository = new LensAddonsRepository();
 const frameVariantRepository = new FrameVariantRepository();
+const itemRepository = new ItemRepository();
 
 const salesRepository = new SalesRepository();
 const saleReturnRepository = new SaleReturnRepository();
@@ -51,9 +53,7 @@ const salesService = new SalesService(
 // Initialize PurchaseService partially first to pass to VoucherService
 const purchaseService = new PurchaseService(
   purchaseRepository,
-  lensesRepository,
-  lensAddonsRepository,
-  frameVariantRepository,
+  itemRepository,
   null
 ); 
 
