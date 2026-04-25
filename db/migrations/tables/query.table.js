@@ -1,3 +1,36 @@
+
+module.exports = async (client) => {
+  try {
+    console.log("⏳ applying database updates...");
+
+    
+    await client.query(updatesaleitemtable);
+    console.log("✅ sale_item table updated (columns updated).");
+
+    
+    await client.query(dropFrameFrameVariantLensLensAddonTables);
+    console.log("✅ Old frame, frame_variants, lenses, and lens_addons tables dropped if they existed.");
+
+    await client.query(updateServicesTable);
+    console.log("✅ Services table updated (item_name, charge, etc added).");
+
+    await client.query(updatePurchaseItemTable);
+    console.log("✅ purchase_item table updated (added item_id).");
+
+    await client.query(removeOldPurchaseItemColumns);
+    console.log("✅ purchase_item table updated (removed frame_variant_id, lens_id, lens_addon_id).");
+
+    await client.query(addModeOfPaymentIdToPurchase);
+    console.log("✅ purchase table updated (mode_of_payment_id column ensured).");
+
+  } catch (e) {
+    console.error("❌ An error occurred during migration:", e.message);
+    throw e;
+  }
+};
+
+
+
 const frametables = `
       DO $$ 
       BEGIN 
@@ -149,37 +182,3 @@ BEGIN
 END
 $$;
 `;
-
-module.exports = async (client) => {
-  try {
-    console.log("⏳ applying database updates...");
-
-    await client.query(frametables);
-    console.log("✅ frame_variants table updated (barcode added).");
-
-    await client.query(updateServicesTable);
-    console.log("✅ Services table updated (item_name, charge, etc added).");
-
-    await client.query(addFrameVariantImageColumn);
-    console.log("✅ frame_variants table updated (image column ensured).");
-
-    await client.query(updatePurchaseItemTable);
-    console.log("✅ purchase_item table updated (added item_id).");
-
-    await client.query(removeOldPurchaseItemColumns);
-    console.log("✅ purchase_item table updated (removed frame_variant_id, lens_id, lens_addon_id).");
-
-    await client.query(updatesaleitemtable);
-    console.log("✅ sale_item table updated (columns updated).");
-
-    await client.query(dropFrameFrameVariantLensLensAddonTables);
-    console.log("✅ Old frame, frame_variants, lenses, and lens_addons tables dropped if they existed.");
-
-    await client.query(addModeOfPaymentIdToPurchase);
-    console.log("✅ purchase table updated (mode_of_payment_id column ensured).");
-
-  } catch (e) {
-    console.error("❌ An error occurred during migration:", e.message);
-    throw e;
-  }
-};
