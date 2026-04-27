@@ -10,7 +10,7 @@ class PayrollRepository {
 
     const filterConfig = {
       employee_id: { operator: "=", column: "p.employee_id" },
-      account_id: { operator: "=", column: "p.account_id" },
+      ledger_id: { operator: "=", column: "p.ledger_id" },
       cost_center_id: { operator: "=", column: "p.cost_center_id" },
       done_by_id: { operator: "=", column: "p.done_by_id" },
       min_salary: { operator: ">=", column: "p.salary" },
@@ -18,7 +18,7 @@ class PayrollRepository {
       start_date: { operator: ">=", column: "p.pay_date" },
       end_date: { operator: "<=", column: "p.pay_date" },
       employee_name: { operator: "ILIKE", column: "e.name", isString: true },
-      account_name: { operator: "ILIKE", column: "a.name", isString: true },
+      ledger_name: { operator: "ILIKE", column: "l.name", isString: true },
       salary: { operator: "=", column: "p.salary" },
     };
 
@@ -43,7 +43,7 @@ class PayrollRepository {
       employee_name: { column: "e.name", operator: "ILIKE" },
       salary: { column: "p.salary", operator: "=", type: "decimal" },
       cost_center_name: { column: "cc.name", operator: "ILIKE" },
-      account_name: { column: "a.name", operator: "ILIKE" },
+      ledger_name: { column: "l.name", operator: "ILIKE" },
       done_by_name: { column: "d.name", operator: "ILIKE" },
     };
 
@@ -71,7 +71,7 @@ class PayrollRepository {
       salary: "p.salary",
       pay_date: "p.pay_date",
       cost_center: "cc.name",
-      account: "a.name",
+      ledger: "l.name",
       done_by: "d.name",
       created_at: "p.created_at",
     };
@@ -98,11 +98,11 @@ class PayrollRepository {
       SELECT p.*, 
         e.name AS employee_name,
         cc.name AS cost_center_name,
-        a.name AS account_name,
+        l.name AS ledger_name,
         d.name AS done_by_name
       FROM payroll p
       LEFT JOIN employee e ON p.employee_id = e.id
-      LEFT JOIN account a ON p.account_id = a.id
+      LEFT JOIN ledger l ON p.ledger_id = l.id
       LEFT JOIN cost_center cc ON p.cost_center_id = cc.id
       LEFT JOIN done_by d ON p.done_by_id = d.id
       WHERE p.tenant_id = $1`;
@@ -121,12 +121,12 @@ class PayrollRepository {
       SELECT p.*, 
         e.name AS employee_name,
         cc.name AS cost_center_name,
-        a.name AS account_name,
+        l.name AS ledger_name,
         d.name AS done_by_name,
         COUNT(*) OVER() as total_count
       FROM payroll p
       LEFT JOIN employee e ON p.employee_id = e.id
-      LEFT JOIN account a ON p.account_id = a.id
+      LEFT JOIN ledger l ON p.ledger_id = l.id
       LEFT JOIN cost_center cc ON p.cost_center_id = cc.id
       LEFT JOIN done_by d ON p.done_by_id = d.id
       WHERE p.tenant_id = $1`;
@@ -147,11 +147,11 @@ class PayrollRepository {
       SELECT p.*, 
         e.name AS employee_name,
         cc.name AS cost_center_name,
-        a.name AS account_name,
+        l.name AS ledger_name,
         d.name AS done_by_name
       FROM payroll p
       LEFT JOIN employee e ON p.employee_id = e.id
-      LEFT JOIN account a ON p.account_id = a.id
+      LEFT JOIN ledger l ON p.ledger_id = l.id
       LEFT JOIN cost_center cc ON p.cost_center_id = cc.id
       LEFT JOIN done_by d ON p.done_by_id = d.id
       WHERE p.id = $1`;
@@ -167,11 +167,11 @@ class PayrollRepository {
 
   // ADDED: db param
   async create(db, payrollData) {
-    const { tenant_id, employee_id, account_id, salary, pay_date, cost_center_id, done_by_id } = payrollData;
+    const { tenant_id, employee_id, ledger_id, salary, pay_date, cost_center_id, done_by_id } = payrollData;
     const { rows } = await db.query(
-      `INSERT INTO payroll(tenant_id, employee_id, account_id, salary, pay_date, cost_center_id, done_by_id)
+      `INSERT INTO payroll(tenant_id, employee_id, ledger_id, salary, pay_date, cost_center_id, done_by_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [tenant_id, employee_id, account_id, salary, pay_date, cost_center_id, done_by_id]
+      [tenant_id, employee_id, ledger_id, salary, pay_date, cost_center_id, done_by_id]
     );
     return rows[0];
   }
@@ -189,7 +189,7 @@ class PayrollRepository {
       queryParams.push(
         tenantId,
         item.employee_id,
-        item.account_id,
+        item.ledger_id,
         item.salary,
         item.pay_date,
         item.cost_center_id,
@@ -197,7 +197,7 @@ class PayrollRepository {
       );
     });
     const query = `
-            INSERT INTO payroll(tenant_id, employee_id, account_id, salary, pay_date, cost_center_id, done_by_id)
+            INSERT INTO payroll(tenant_id, employee_id, ledger_id, salary, pay_date, cost_center_id, done_by_id)
             VALUES ${values.join(", ")} RETURNING *`;
     const { rows } = await db.query(query, queryParams);
     return rows;

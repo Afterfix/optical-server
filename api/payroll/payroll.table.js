@@ -17,7 +17,7 @@ module.exports = async (client) => {
                     done_by_id INTEGER REFERENCES "done_by"(id) ON DELETE SET NULL,
                     cost_center_id INTEGER REFERENCES "cost_center"(id) ON DELETE SET NULL,
                     salary DECIMAL(12, 2) NOT NULL,
-                    account_id INTEGER REFERENCES account(id) ON DELETE CASCADE NOT NULL,
+                    ledger_id INTEGER REFERENCES ledger(id) ON DELETE CASCADE NOT NULL,
                     pay_date DATE NOT NULL,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -44,6 +44,11 @@ module.exports = async (client) => {
         `CREATE INDEX idx_payroll_cost_center_id ON payroll(cost_center_id);`
       );
       console.log('✅ Index "idx_payroll_cost_center_id" created.');
+
+      await client.query(
+        `CREATE INDEX idx_payroll_ledger_id ON payroll(ledger_id);`
+      );
+      console.log('✅ Index "idx_payroll_ledger_id" created.');
     }
   } catch (err) {
     console.error('❌ Failed to create "payroll" table:', err.message);

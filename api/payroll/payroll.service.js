@@ -1,65 +1,47 @@
 class PayrollService {
-  constructor(payrollRepository, tenantRepository, transactionService) {
+  constructor(
+    payrollRepository,
+    tenantRepository,
+    ledgerService,
+    voucherRepository,
+    voucherTransactionsService
+  ) {
     this.repository = payrollRepository;
     this.tenantRepository = tenantRepository;
-    this.transactionService = transactionService;
+    this.ledgerService = ledgerService;
+    this.voucherRepository = voucherRepository;
+    this.voucherTransactionsService = voucherTransactionsService;
   }
 
-  // ADDED: db param
   async getAll(user, filters, db) {
     let tenantId;
     if (user.role === "super_admin") {
-      if (!filters.tenant_id) {
-        const error = new Error(
-          "Bad Request: Super admin must specify a 'tenant_id' in the query parameters."
-        );
-        error.statusCode = 400;
-        throw error;
-      }
-      tenantId = filters.tenant_id;
+      tenantId = filters.tenant_id || null;
     } else {
       tenantId = user.tenant_id;
     }
-    // Pass db to repo
-    return this.repository.getAllByUser(db, tenantId, filters);
+    return await this.repository.getAllByUser(db, tenantId, filters);
   }
 
-  // ADDED: db param
   async getAllPaginated(user, filters, db) {
     let tenantId;
     if (user.role === "super_admin") {
       if (!filters.tenant_id) {
-        const error = new Error(
-          "Bad Request: Super admin must specify a 'tenant_id' in the query parameters."
-        );
-        error.statusCode = 400;
-        throw error;
+        throw new Error("Super admin must specify a 'tenant_id' in query parameters.");
       }
       tenantId = filters.tenant_id;
     } else {
       tenantId = user.tenant_id;
     }
-    // Pass db to repo
-    const { payrollRecords, totalCount } =
-      await this.repository.getPaginatedByTenantId(db, tenantId, filters);
+
     const pageSize = filters.page_size ? parseInt(filters.page_size, 10) : 10;
+    const { payrollRecords, totalCount } = await this.repository.getPaginatedByTenantId(db, tenantId, filters);
+    
     const page_count = totalCount > 0 ? Math.ceil(totalCount / pageSize) : 0;
 
     return { data: payrollRecords, count: totalCount, page_count };
   }
 
-  // ADDED: db param
-  async getById(id, user, db) {
-    const tenantId = user.role === "super_admin" ? null : user.tenant_id;
-    // Pass db to repo
-    const payroll = await this.repository.getById(db, id, tenantId);
-    if (!payroll) {
-      throw new Error("Payroll record not found or not authorized");
-    }
-    return payroll;
-  }
-
-  // ADDED: db param
   async create(payrollData, user, db) {
     const client = await db.connect();
     try {
@@ -81,46 +63,55 @@ class PayrollService {
         done_by_id: payrollData.done_by_id || null, 
       };
 
-      // 1. Create Payroll Record (Pass client)
+      // 1. Create Payroll Record
       const newPayroll = await this.repository.create(client, dataToSave);
 
-      // 2. Create Transaction (Pass client)
-      await this.transactionService.create(
-        {
-          tenant_id: newPayroll.tenant_id,
-          transaction_type: "expense", 
-          reference_id: newPayroll.id,
-          account_id: newPayroll.account_id,
-          amount: parseFloat(newPayroll.salary),
+      // 2. VOUCHER METHOD: Create a Voucher and Voucher Transaction (if ledger_id exists)
+      if (parseFloat(newPayroll.salary) > 0 && newPayroll.ledger_id) {
+        const voucherPayload = {
+          tenant_id: tenantIdForNewEntry,
+          amount: newPayroll.salary,
+          date: newPayroll.pay_date,
           description: `Payroll Payment - ${newPayroll.pay_date}`,
+          voucher_no: `VOU-PAY-${Date.now()}-${newPayroll.id}`,
+          voucher_type: 0, // 0 for Paid
+          from_ledger: { ledger_id: newPayroll.ledger_id },
+          to_ledger: { ledger_id: null },
           cost_center_id: newPayroll.cost_center_id,
-          done_by_id: newPayroll.done_by_id, 
-        },
-        user, // Pass user if required by signature
-        client
-      );
+          done_by_id: newPayroll.done_by_id,
+          mode_of_payment_id: null,
+        };
+
+        const newVoucher = await this.voucherRepository.create(client, voucherPayload);
+
+        // Create the record in voucher_transactions table
+        await this.voucherTransactionsService.createMany(client, newVoucher.id, [
+          {
+            invoice_id: newPayroll.id.toString(),
+            invoice_type: "PAYROLL",
+            received_amount: newPayroll.salary,
+          },
+        ]);
+
+        // Adjust the Ledger balance
+        await this.ledgerService.adjustBalance(
+          client,
+          newPayroll.ledger_id,
+          tenantIdForNewEntry,
+          -parseFloat(newPayroll.salary)
+        );
+      }
 
       await client.query("COMMIT");
-      // return this.repository.getById(
-      //   db,
-      //   newPayroll.id,
-      //   user.role === "super_admin" ? null : user.tenant_id
-      // );
-      return {
-        status: "success",
-        data:newPayroll};
+      return newPayroll;
     } catch (error) {
       await client.query("ROLLBACK");
-      return {
-        status: "failed",
-        message: error.message || "Something went wrong",
-      };
+      throw error;
     } finally {
       client.release();
     }
   }
 
-  // ADDED: db param
   async createBulk(bulkData, user, db) {
     const client = await db.connect();
     try {
@@ -145,128 +136,161 @@ class PayrollService {
         done_by_id: p.done_by_id || null, 
       }));
 
-      // 1. Bulk Insert Payrolls (Pass client)
+      // 1. Bulk Insert Payrolls
       const newPayrolls = await this.repository.createBulk(client, payrollsPrepared, tenantId);
 
-      // 2. Loop to create Transactions for each (Pass client)
+      // 2. Loop to create Vouchers for each
       for (const p of newPayrolls) {
-        await this.transactionService.create(
-          {
-            tenant_id: p.tenant_id,
-            transaction_type: "expense",
-            reference_id: p.id,
-            account_id: p.account_id,
-            amount: parseFloat(p.salary),
-            description: `Payroll Payment`, 
+        if (parseFloat(p.salary) > 0 && p.ledger_id) {
+          const voucherPayload = {
+            tenant_id: tenantId,
+            amount: p.salary,
+            date: p.pay_date,
+            description: `Bulk Payroll Payment`,
+            voucher_no: `VOU-PAY-B-${Date.now()}-${p.id}`,
+            voucher_type: 0,
+            from_ledger: { ledger_id: p.ledger_id },
+            to_ledger: { ledger_id: null },
             cost_center_id: p.cost_center_id,
             done_by_id: p.done_by_id,
-          },
-          user,
-          client
-        );
+            mode_of_payment_id: null,
+          };
+
+          const newVoucher = await this.voucherRepository.create(client, voucherPayload);
+
+          await this.voucherTransactionsService.createMany(client, newVoucher.id, [
+            {
+              invoice_id: p.id.toString(),
+              invoice_type: "PAYROLL",
+              received_amount: p.salary,
+            },
+          ]);
+
+          await this.ledgerService.adjustBalance(
+            client,
+            p.ledger_id,
+            tenantId,
+            -parseFloat(p.salary)
+          );
+        }
       }
 
       await client.query("COMMIT");
-      return {
-        status: "success",
-        data: newPayrolls,
-      };
+      return newPayrolls;
     } catch (error) {
       await client.query("ROLLBACK");
-      return {
-        status: "failed",
-        message: error.message || "Something went wrong",
-      }
+      throw error;
     } finally {
       client.release();
     }
   }
 
-  // ADDED: db param
+  async getById(id, user, db) {
+    let tenantId;
+    if (user.role !== "super_admin") {
+      tenantId = user.tenant_id;
+    }
+    return await this.repository.getById(db, id, tenantId);
+  }
+
   async update(id, payrollData, user, db) {
     const client = await db.connect();
     try {
       await client.query("BEGIN");
-
-      const { tenant_id, ...updateData } = payrollData;
-      const tenantIdToUpdate = user.role === "super_admin" ? null : user.tenant_id;
-
-      const updatedPayroll = await this.repository.update(
-        client,
-        id,
-        tenantIdToUpdate,
-        updateData
-      );
-
-      if (!updatedPayroll) {
-        throw new Error("Payroll record not found or not authorized to update");
+      
+      let tenantId;
+      if (user.role !== "super_admin") {
+        tenantId = user.tenant_id;
       }
 
-      await this.transactionService.updateByReference(
-        {
+      const oldPayroll = await this.repository.getById(client, id, tenantId);
+      if (!oldPayroll) throw new Error("Payroll record not found or not authorized");
+
+      // 1. Reverse old ledger adjustment
+      if (parseFloat(oldPayroll.salary) > 0 && oldPayroll.ledger_id) {
+        await this.ledgerService.adjustBalance(
+          client,
+          oldPayroll.ledger_id,
+          oldPayroll.tenant_id,
+          parseFloat(oldPayroll.salary)
+        );
+      }
+
+      const updatedPayroll = await this.repository.update(client, id, tenantId, payrollData);
+
+      // 2. Apply new ledger adjustment
+      if (parseFloat(updatedPayroll.salary) > 0 && updatedPayroll.ledger_id) {
+        const voucherPayload = {
           tenant_id: updatedPayroll.tenant_id,
-          transaction_type: "expense",
-          reference_id: updatedPayroll.id,
-          account_id: updatedPayroll.account_id,
-          amount: parseFloat(updatedPayroll.salary),
-          description: `Payroll Payment - ${new Date(updatedPayroll.pay_date).toISOString().split('T')[0]}`,
+          amount: updatedPayroll.salary,
+          date: updatedPayroll.pay_date,
+          description: `Updated Payroll Payment - ${updatedPayroll.pay_date}`,
+          voucher_no: `VOU-PAY-UP-${Date.now()}-${updatedPayroll.id}`,
+          voucher_type: 0,
+          from_ledger: { ledger_id: updatedPayroll.ledger_id },
+          to_ledger: { ledger_id: null },
           cost_center_id: updatedPayroll.cost_center_id,
-        },
-        client
-      );
+          done_by_id: updatedPayroll.done_by_id,
+          mode_of_payment_id: null,
+        };
+
+        const newVoucher = await this.voucherRepository.create(client, voucherPayload);
+
+        await this.voucherTransactionsService.createMany(client, newVoucher.id, [
+          {
+            invoice_id: updatedPayroll.id.toString(),
+            invoice_type: "PAYROLL",
+            received_amount: updatedPayroll.salary,
+          },
+        ]);
+
+        await this.ledgerService.adjustBalance(
+          client,
+          updatedPayroll.ledger_id,
+          updatedPayroll.tenant_id,
+          -parseFloat(updatedPayroll.salary)
+        );
+      }
 
       await client.query("COMMIT");
-      return{
-        status: "success",
-        data: updatedPayroll,
-      }
-      // return this.repository.getById(db, id, tenantIdToUpdate);
+      return updatedPayroll;
     } catch (error) {
       await client.query("ROLLBACK");
-      return {
-        status: "failed",
-        message: error.message || "Something went wrong",
-      }
+      throw error;
     } finally {
       client.release();
     }
   }
 
-  // ADDED: db param
   async delete(id, user, db) {
     const client = await db.connect();
     try {
       await client.query("BEGIN");
-
-      const tenantIdToDelete = user.role === "super_admin" ? null : user.tenant_id;
-
-      const recordToDelete = await this.repository.getById(client, id, tenantIdToDelete);
-      if(!recordToDelete) {
-         throw new Error("Payroll record not found or not authorized to delete");
+      
+      let tenantId;
+      if (user.role !== "super_admin") {
+        tenantId = user.tenant_id;
       }
 
-      // 1. Delete Transaction (Pass client)
-      await this.transactionService.deleteByReference(
-        recordToDelete.tenant_id,
-        "expense",
-        id,
-        client
-      );
+      const payroll = await this.repository.getById(client, id, tenantId);
+      if (!payroll) throw new Error("Payroll record not found or not authorized");
 
-      // 2. Delete Payroll (Pass client)
-      const deletedPayroll = await this.repository.delete(client, id, tenantIdToDelete);
+      // Reverse ledger adjustment
+      if (parseFloat(payroll.salary) > 0 && payroll.ledger_id) {
+        await this.ledgerService.adjustBalance(
+          client,
+          payroll.ledger_id,
+          payroll.tenant_id,
+          parseFloat(payroll.salary)
+        );
+      }
 
+      const result = await this.repository.delete(client, id, tenantId);
       await client.query("COMMIT");
-      return {
-        status: "success",
-        data: deletedPayroll};
+      return result;
     } catch (error) {
       await client.query("ROLLBACK");
-      
-      return{
-        status: "failed",
-        message: error.message || "Something went wrong",
-      }
+      throw error;
     } finally {
       client.release();
     }

@@ -23,6 +23,9 @@ module.exports = async (client) => {
     await client.query(addModeOfPaymentIdToPurchase);
     console.log("✅ purchase table updated (mode_of_payment_id column ensured).");
 
+    await client.query(updatePayrollTable);
+    console.log("✅ payroll table updated (account_id to ledger_id).");
+
   } catch (e) {
     console.error("❌ An error occurred during migration:", e.message);
     throw e;
@@ -182,3 +185,21 @@ BEGIN
 END
 $$;
 `;
+
+const updatePayrollTable = `
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payroll' AND column_name='ledger_id') THEN
+        ALTER TABLE payroll ADD COLUMN ledger_id INTEGER REFERENCES ledger(id) ON DELETE CASCADE;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payroll' AND column_name='account_id') THEN
+        ALTER TABLE payroll DROP COLUMN account_id;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename = 'payroll' AND indexname = 'idx_payroll_ledger_id') THEN
+        CREATE INDEX idx_payroll_ledger_id ON payroll(ledger_id);
+    END IF;
+END $$;
+`;
+

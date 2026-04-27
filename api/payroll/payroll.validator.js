@@ -3,7 +3,7 @@ class PayrollValidator {
     const errorPrefix = index !== null ? ` in item at index ${index}` : "";
 
     if (!isUpdate) {
-      const requiredFields = ["employee_id", "salary", "pay_date"];
+      const requiredFields = ["employee_id", "salary", "pay_date", "ledger_id"];
       const missingFields = requiredFields.filter(
         (field) => item[field] == null
       );
@@ -42,6 +42,14 @@ class PayrollValidator {
         item.cost_center_id <= 0)
     ) {
       return `Invalid cost_center_id${errorPrefix}. Must be a positive integer.`;
+    }
+    if (
+      item.ledger_id !== undefined &&
+      (typeof item.ledger_id !== "number" ||
+        !Number.isInteger(item.ledger_id) ||
+        item.ledger_id <= 0)
+    ) {
+      return `Invalid ledger_id${errorPrefix}. Must be a positive integer.`;
     }
     return null; // No error
   }

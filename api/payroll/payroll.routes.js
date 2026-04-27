@@ -9,31 +9,28 @@ const PayrollService = require("./payroll.service");
 const PayrollValidator = require("./payroll.validator");
 // REMOVED: const db = require('../../config/db')
 
-// --- Transaction Dependencies ---
-const TransactionRepository = require("../transaction/transaction.repository");
-const TransactionService = require("../transaction/transaction.service");
-const TransactionLedgerRepository = require("../transactionLedger/transactionLedger.repository");
-const TransactionLedgerService = require("../transactionLedger/transactionLedger.service");
+// --- Ledger & Voucher Dependencies (Align with Expense) ---
+const LedgerRepository = require("../ledger/ledger.repository");
+const LedgerService = require("../ledger/ledger.service");
+const VoucherRepository = require("../voucher/voucher.repository");
+const VoucherTransactionsService = require("../voucherTransaction/voucherTransaction.service");
 
 // Stateless Init
 const payrollRepository = new PayrollRepository();
 const tenantRepository = new TenantRepository();
 
-const transactionRepository = new TransactionRepository();
-const transactionLedgerRepository = new TransactionLedgerRepository();
-const transactionLedgerService = new TransactionLedgerService(
-  transactionLedgerRepository
-);
-const transactionService = new TransactionService(
-  transactionRepository,
-  transactionLedgerService
-);
+const ledgerRepository = new LedgerRepository();
+const ledgerService = new LedgerService(ledgerRepository);
+const voucherRepository = new VoucherRepository();
+const voucherTransactionsService = new VoucherTransactionsService();
 
-// Inject TransactionService into PayrollService
+// Inject Dependencies into PayrollService
 const payrollService = new PayrollService(
   payrollRepository,
   tenantRepository,
-  transactionService
+  ledgerService,
+  voucherRepository,
+  voucherTransactionsService
 );
 const payrollController = new PayrollController(payrollService);
 const payrollValidator = new PayrollValidator();
