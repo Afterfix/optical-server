@@ -21,7 +21,9 @@ class PartyRepository {
       type: { operator: "=", column: "p.type" },
       done_by_id: { operator: "=", column: "p.done_by_id" },
       cost_center_id: { operator: "=", column: "p.cost_center_id" },
-      ledger_id: { operator: "=", column: "p.ledger_id" }, // <<< ADDED
+      ledger_id: { operator: "=", column: "p.ledger_id" },
+      start_date: { operator: ">=", column: "p.created_at::DATE" },
+      end_date: { operator: "<=", column: "p.created_at::DATE" },
     };
 
     Object.keys(otherFilters).forEach((key) => {
@@ -50,9 +52,20 @@ class PartyRepository {
     if (sort) {
       const direction = sort.startsWith("-") ? "DESC" : "ASC";
       const column = sort.replace("-", "");
-      const allowedColumns = ["name", "email", "created_at"]; // Whitelist columns
+      const allowedColumns = [
+        "name",
+        "email",
+        "phone",
+        "outstanding_balance",
+        "created_at",
+        "done_by",
+        "cost_center",
+      ]; // Whitelist columns
       if (allowedColumns.includes(column)) {
-        query += ` ORDER BY p.${column} ${direction}`;
+        let orderBy = `p.${column}`;
+        if (column === "done_by") orderBy = "db.name";
+        if (column === "cost_center") orderBy = "cc.name";
+        query += ` ORDER BY ${orderBy} ${direction}`;
       } else {
         query += " ORDER BY p.name ASC, p.id DESC";
       }

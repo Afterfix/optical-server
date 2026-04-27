@@ -57,6 +57,7 @@ class ItemRepository {
       selling_price: "i.selling_price",
       done_by: "db.name",
       cost_center: "cc.name",
+      sku: "i.sku",
       created_at: "i.created_at",
     };
     if (sort) {
